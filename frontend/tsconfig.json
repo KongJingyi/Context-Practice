@@ -1,22 +1,27 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.json",
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2020", "DOM"],
+    "jsx": "preserve",
+    "strict": true,
+    "noImplicitThis": true,
+    "useDefineForClassFields": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true,
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "lib": ["ES2020", "DOM"],
     "types": ["@dcloudio/types"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "isolatedModules": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    
-    /* 新增以下两行来解决报错 */
-    "noEmit": true,
-    "verbatimModuleSyntax": true
+    "allowJs": true
   },
   "include": [
     "src/**/*.ts",

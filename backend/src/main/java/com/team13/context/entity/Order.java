@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 陪练预约 / 订单（支付与履约状态由业务枚举扩展）。
+ * 陪练订单，对应 {@code ctx_order}。
  */
 @Data
 @TableName("ctx_order")
@@ -20,17 +20,32 @@ public class Order {
 
     private Long userId;
 
-    /** 预约的陪练产品或套餐 ID */
     private Long productId;
 
-    /** 预约开始时间 */
+    private Long coachId;
+
+    private Long sceneId;
+
     private LocalDateTime scheduledStart;
 
-    /** 订单金额 */
+    private LocalDateTime scheduledEnd;
+
     private BigDecimal amount;
 
-    /** 订单状态：待支付、已支付、已取消、已完成等 */
+    /**
+     * PENDING_PAY / PAID / CANCELLED / IN_SERVICE / COMPLETED / REFUNDING / REFUNDED
+     */
     private String status;
+
+    private BigDecimal platformFeeRate;
+
+    private BigDecimal platformFeeAmount;
+
+    private BigDecimal coachIncomeAmount;
+
+    private LocalDateTime payAt;
+
+    private LocalDateTime cancelAt;
 
     private LocalDateTime createdAt;
 

@@ -1,16 +1,97 @@
 {
   "pages": [
     {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/auth/coach-portal",
+      "style": {
+        "navigationBarTitleText": "陪练工作台",
+        "navigationBarBackgroundColor": "#f1f5f9"
+      }
+    },
+    {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "场景广场"
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/scenes/scenes",
+      "style": {
+        "navigationBarTitleText": "场景广场",
+        "navigationBarBackgroundColor": "#ffffff"
+      }
+    },
+    {
+      "path": "pages/coach-hall/coach-hall",
+      "style": {
+        "navigationBarTitleText": "陪练大厅",
+        "navigationBarBackgroundColor": "#f0f7ff"
+      }
+    },
+    {
+      "path": "pages/expert-booking/expert-booking",
+      "style": {
+        "navigationBarTitleText": "专家预约",
+        "navigationBarBackgroundColor": "#f8fafc"
+      }
+    },
+    {
+      "path": "pages/insight-square/insight-square",
+      "style": {
+        "navigationBarTitleText": "实战圈",
+        "navigationBarBackgroundColor": "#f0f7ff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/practice-lab/practice-lab",
+      "style": {
+        "navigationBarTitleText": "练习实验室",
+        "navigationBarBackgroundColor": "#f0f7ff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/my-orders/my-orders",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的订单"
       }
     },
     {
       "path": "pages/room/room",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "训练房间",
-        "navigationBarBackgroundColor": "#0f172a",
+        "navigationBarBackgroundColor": "#111827",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/report-detail/report-detail",
+      "style": {
+        "navigationBarTitleText": "反馈报告",
+        "navigationBarBackgroundColor": "#ffffff"
+      }
+    },
+    {
+      "path": "pages/post-training-review/post-training-review",
+      "style": {
+        "navigationBarTitleText": "训练评价",
+        "navigationBarBackgroundColor": "#f0f7ff"
+      }
+    },
+    {
+      "path": "pages/complaint/complaint",
+      "style": {
+        "navigationBarTitleText": "投诉与申诉",
+        "navigationBarBackgroundColor": "#334155",
         "navigationBarTextStyle": "white"
       }
     },
@@ -18,6 +99,13 @@
       "path": "pages/profile/profile",
       "style": {
         "navigationBarTitleText": "个人中心"
+      }
+    },
+    {
+      "path": "pages/identity-verify/identity-verify",
+      "style": {
+        "navigationBarTitleText": "身份认证",
+        "navigationBarBackgroundColor": "#f0f7ff"
       }
     }
   ],
@@ -29,19 +117,31 @@
   },
   "tabBar": {
     "color": "#64748b",
-    "selectedColor": "#4f46e5",
+    "selectedColor": "#2563eb",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "场景",
+        "text": "首页",
         "iconPath": "static/tab/home.png",
         "selectedIconPath": "static/tab/home-active.png"
       },
       {
-        "pagePath": "pages/room/room",
-        "text": "训练",
+        "pagePath": "pages/scenes/scenes",
+        "text": "场景广场",
+        "iconPath": "static/tab/scene.png",
+        "selectedIconPath": "static/tab/scene-active.png"
+      },
+      {
+        "pagePath": "pages/insight-square/insight-square",
+        "text": "实战圈",
+        "iconPath": "static/tab/home.png",
+        "selectedIconPath": "static/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/my-orders/my-orders",
+        "text": "我的订单",
         "iconPath": "static/tab/room.png",
         "selectedIconPath": "static/tab/room-active.png"
       },

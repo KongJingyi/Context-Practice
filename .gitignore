@@ -1,17 +1,24 @@
-# Backend (Maven)
-backend/target/
+# 环境变量与密钥（勿提交真实 .env）
+.env
+.env.local
+.env.*.local
+!.env.example
+!**/.env.example
 
-# Frontend (Node)
-frontend/node_modules/
-frontend/dist/
-frontend/.env.local
-frontend/.env.*.local
+# 构建产物与依赖
+**/node_modules/
+**/target/
+**/dist/
+**/dist-admin/
 
-# IDE / OS
+# IDE
 .idea/
 *.iml
-.project
-.classpath
-.settings/
-*.log
+
+# 本地上传
+**/data/verify-uploads/
+**/data/
+
+# OS
 .DS_Store
+Thumbs.db

@@ -5,15 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * 开始训练请求体占位。
+ * 开始训练请求：用户身份由 JWT / {@link com.team13.context.common.UserContext} 提供。
  */
 @Data
 public class TrainingStartRequest {
 
     @NotNull
-    private Long userId;
-
-    /** 可选：关联预约订单 */
     private Long orderId;
 
     @NotBlank

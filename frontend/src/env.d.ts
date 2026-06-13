@@ -1,9 +1,12 @@
-/// <reference types="vite/client" />
+﻿/// <reference types="vite/client" />
+/// <reference types="@dcloudio/types" />
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE: string;
   readonly VITE_DEV_PROXY_TARGET?: string;
   readonly VITE_DEV_PORT?: string;
+  /** user | coach — 固定端；留空则 H5 登录页可切换 */
+  readonly VITE_APP_SIDE?: string;
 }
 
 interface ImportMeta {
@@ -16,7 +19,7 @@ declare module "@/store/user" {
   export function useUserStore(): any;
 }
 
-declare module "@/utils/trainingBridge.js" {
+declare module "@/utils/training/bridge.js" {
   export function setPendingTraining(payload: {
     scenarioId: string;
     roomTitle: string;

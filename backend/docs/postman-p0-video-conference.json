@@ -1,0 +1,184 @@
+{
+  "info": {
+    "name": "语境智练 P0 视频会议",
+    "description": "阶段 1 MVP 联调集合。Base URL: http://localhost:8080/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api" },
+    { "key": "token", "value": "" },
+    { "key": "coachToken", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "roomId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. 用户登录",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"demo_user\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "2. 陪练登录",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"demo_coach\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "3. 当前用户信息",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/v1/user/me"
+      }
+    },
+    {
+      "name": "4. 创建订单",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 99.00,\n  \"sceneId\": 1,\n  \"coachId\": null\n}"
+        },
+        "url": "{{baseUrl}}/v1/orders"
+      }
+    },
+    {
+      "name": "5. Mock 支付",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": {{orderId}}\n}"
+        },
+        "url": "{{baseUrl}}/v1/orders/mock-pay"
+      }
+    },
+    {
+      "name": "6. 用户订单列表",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/v1/orders?status=PAID&page=1&size=10"
+      }
+    },
+    {
+      "name": "7. 开始训练",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": {{orderId}},\n  \"scenarioCode\": \"INTERVIEW\"\n}"
+        },
+        "url": "{{baseUrl}}/v1/training/start"
+      }
+    },
+    {
+      "name": "8. 进房凭证 join-info（用户）",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/v1/rooms/{{roomId}}/join-info"
+      }
+    },
+    {
+      "name": "9. 记录进房（用户）",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": "{{baseUrl}}/v1/rooms/{{roomId}}/join"
+      }
+    },
+    {
+      "name": "10. 进房凭证 join-info（陪练）",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{coachToken}}" }],
+        "url": "{{baseUrl}}/v1/rooms/{{roomId}}/join-info"
+      }
+    },
+    {
+      "name": "11. 记录进房（陪练）",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{coachToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": "{{baseUrl}}/v1/rooms/{{roomId}}/join"
+      }
+    },
+    {
+      "name": "12. 房间状态",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/v1/rooms/{{roomId}}"
+      }
+    },
+    {
+      "name": "13. 离开房间（用户）",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"USER_HANGUP\"\n}"
+        },
+        "url": "{{baseUrl}}/v1/rooms/{{roomId}}/leave"
+      }
+    },
+    {
+      "name": "14. 结束训练（陪练）",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{coachToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": "{{baseUrl}}/v1/rooms/{{roomId}}/end"
+      }
+    },
+    {
+      "name": "15. 陪练订单列表",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{coachToken}}" }],
+        "url": "{{baseUrl}}/v1/coach/orders?status=PAID&page=1&size=10"
+      }
+    }
+  ]
+}

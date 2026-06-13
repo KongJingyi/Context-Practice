@@ -32,6 +32,14 @@ public class TrainingRecord {
 
     private LocalDateTime endedAt;
 
+    private String recordingUrl;
+
+    private String recordingStatus;
+
+    private String trtcTaskId;
+
+    private LocalDateTime recordingExpiresAt;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
