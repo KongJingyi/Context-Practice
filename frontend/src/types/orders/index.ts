@@ -12,6 +12,7 @@ export type OrderStatus =
   | "cancelled"
   | "refunding"
   | "refunded"
+  | "expired"
   | "closed";
 
 export interface OrderTimelineEvent {
@@ -67,6 +68,16 @@ export interface MyOrderItem {
   canReview?: boolean;
   /** 训练报告是否已生成 */
   reportReady?: boolean;
+  /** 右上角角标（后端按时间计算） */
+  ribbonLabel?: string;
+  /** UPCOMING | ENTERABLE | IN_TRAINING | EXPIRED 等 */
+  displayPhase?: string;
+  /** 是否可取消 */
+  canCancel?: boolean;
+  /** 是否已失效（预约结束未进房） */
+  expired?: boolean;
+  /** 训练时段已结束（超时归档） */
+  sessionEnded?: boolean;
   timeline?: OrderTimelineEvent[];
   refundSteps?: RefundProgressStep[];
 }
@@ -92,7 +103,13 @@ export const ORDER_STATUS_MAP: Record<OrderStatus, OrderStatusMeta> = {
     color: "#1d4ed8",
     bg: "#eff6ff",
     border: "#93c5fd",
-    ribbon: "即将开始",
+  },
+  expired: {
+    label: "已失效",
+    color: "#64748b",
+    bg: "#f8fafc",
+    border: "#cbd5e1",
+    ribbon: "已失效",
   },
   pending_review: {
     label: "待复盘",

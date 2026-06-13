@@ -38,30 +38,16 @@
       <div class="toolbox-block">
         <p class="toolbox-label">压力提问</p>
         <div class="toolbox-chips">
-          <button
-            v-for="q in pressureQuestions"
-            :key="q.id"
-            type="button"
-            class="toolbox-chip toolbox-chip--warn"
-            @click="emit('question', q.text, q.id)"
-          >
-            {{ q.label }}
+          <button type="button" class="toolbox-chip toolbox-chip--warn" @click="emit('question', '如果项目延期你怎么交代？')">
+            项目延期
+          </button>
+          <button type="button" class="toolbox-chip toolbox-chip--warn" @click="emit('question', '你的方案被领导否决了怎么办？')">
+            方案否决
+          </button>
+          <button type="button" class="toolbox-chip toolbox-chip--warn" @click="emit('question', '你的预算被砍了50%，怎么调整？')">
+            预算砍半
           </button>
         </div>
-      </div>
-    </div>
-
-    <div class="toolbox-section">
-      <div class="toolbox-row">
-        <h2 class="toolbox-heading">白板</h2>
-        <button
-          type="button"
-          class="toolbox-chip"
-          :class="whiteboardActive ? 'toolbox-chip--on' : ''"
-          @click="emit('whiteboardToggle')"
-        >
-          {{ whiteboardActive ? "已开启" : "开启" }}
-        </button>
       </div>
     </div>
 
@@ -76,10 +62,6 @@
           <span class="toolbox-material-size">{{ m.sizeLabel }}</span>
         </div>
         <p v-if="!materials.length" class="toolbox-empty">暂无资料</p>
-        <label class="toolbox-upload">
-          <input type="file" class="toolbox-upload-input" @change="onFilePick" />
-          <span>{{ uploading ? "上传中…" : "+ 上传资料" }}</span>
-        </label>
       </div>
     </div>
 
@@ -111,22 +93,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { ref } from "vue";
 import type { MaterialItem } from "@/api/modules/materials";
-import { fetchPressureQuestions } from "@/api/modules/coach";
-
-const DEFAULT_PRESSURE = [
-  { id: "d1", label: "项目延期", text: "如果项目延期你怎么交代？" },
-  { id: "d2", label: "方案否决", text: "你的方案被领导否决了怎么办？" },
-  { id: "d3", label: "预算砍半", text: "你的预算被砍了50%，怎么调整？" },
-];
-
-const pressureQuestions = ref(DEFAULT_PRESSURE);
-
-onMounted(async () => {
-  const list = await fetchPressureQuestions();
-  if (list.length) pressureQuestions.value = list;
-});
 
 defineProps<{
   materials: MaterialItem[];
@@ -134,18 +102,14 @@ defineProps<{
   countdownActive: boolean;
   countdownLeft: number;
   countdownPercent: number;
-  whiteboardActive: boolean;
-  uploading?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "countdown", seconds: number): void;
   (e: "stopCountdown"): void;
   (e: "interrupt", message: string): void;
-  (e: "question", text: string, questionId?: string): void;
+  (e: "question", text: string): void;
   (e: "chat", text: string): void;
-  (e: "whiteboardToggle"): void;
-  (e: "uploadMaterial", file: File): void;
 }>();
 
 const materialsOpen = ref(false);
@@ -156,13 +120,6 @@ function send() {
   if (!text) return;
   emit("chat", text);
   chatDraft.value = "";
-}
-
-function onFilePick(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (file) emit("uploadMaterial", file);
-  input.value = "";
 }
 </script>
 
@@ -246,26 +203,6 @@ function onFilePick(e: Event) {
 .toolbox-chip--danger {
   color: #fca5a5;
   border-color: rgba(239, 68, 68, 0.3);
-}
-.toolbox-chip--on {
-  background: rgba(59, 130, 246, 0.35);
-  color: #93c5fd;
-}
-.toolbox-upload {
-  display: block;
-  margin-top: 10px;
-  padding: 8px;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px dashed rgba(59, 130, 246, 0.35);
-  border-radius: 8px;
-  cursor: pointer;
-}
-.toolbox-upload-input {
-  display: none;
 }
 .toolbox-countdown {
   margin-top: 8px;

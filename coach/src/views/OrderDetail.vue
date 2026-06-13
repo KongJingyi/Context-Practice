@@ -97,14 +97,7 @@
                 等待学员开始
               </button>
               <button
-                v-if="order.coachFeedbackPending"
-                class="w-full py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors"
-                @click="router.push(`/submit-feedback/${order.orderId}`)"
-              >
-                提交课后反馈
-              </button>
-              <button
-                v-if="order.reportReady && !order.coachFeedbackPending"
+                v-if="order.status === 'COMPLETED'"
                 class="w-full py-3 border border-teal-200 text-teal-700 rounded-xl font-medium hover:bg-teal-50 transition-colors"
                 @click="router.push(`/report/${order.orderId}`)"
               >
@@ -136,8 +129,8 @@ const router = useRouter();
 const order = ref<OrderApiRecord | null>(null);
 const loading = ref(true);
 
-const trainingGoal = ref("暂未填写训练目标");
-const userBackground = ref("暂未填写学员背景");
+const trainingGoal = ref("提升结构化表达与临场抗压能力，重点练习结论先行与数据支撑");
+const userBackground = ref("互联网产品岗，有 3 年工作经验，准备管理岗晋升答辩");
 
 function statusLabel(s: string) {
   const m: Record<string, string> = {
@@ -178,8 +171,9 @@ onMounted(async () => {
   const id = route.params.id as string;
   if (id) {
     order.value = await fetchOrderDetail(id);
-    if (order.value.trainingGoal) trainingGoal.value = order.value.trainingGoal;
-    if (order.value.userBackground) userBackground.value = order.value.userBackground;
+    const ext = order.value as OrderApiRecord & { trainingGoal?: string; userBackground?: string };
+    if (ext.trainingGoal) trainingGoal.value = ext.trainingGoal;
+    if (ext.userBackground) userBackground.value = ext.userBackground;
   }
   loading.value = false;
 });

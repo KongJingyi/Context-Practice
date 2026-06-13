@@ -29,9 +29,11 @@ import com.team13.context.metrics.MetricKeys;
 import com.team13.context.order.PaymentOrderAssertions;
 import com.team13.context.service.OrderService;
 import com.team13.context.service.support.OrderBookingSupport;
+import com.team13.context.service.support.OrderLifecycleSupport;
 import com.team13.context.service.support.OrderScheduleSupport;
 import com.team13.context.service.support.ReviewFlowSupport;
 import com.team13.context.service.support.RoomAccessHelper;
+import com.team13.context.service.support.TrainingSessionSupport;
 import com.team13.context.service.support.UserDisplayHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,8 @@ public class OrderServiceImpl implements OrderService {
     private final UserDisplayHelper userDisplayHelper;
     private final OrderBookingSupport orderBookingSupport;
     private final ReviewFlowSupport reviewFlowSupport;
+    private final OrderLifecycleSupport orderLifecycleSupport;
+    private final TrainingSessionSupport trainingSessionSupport;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -303,12 +307,27 @@ public class OrderServiceImpl implements OrderService {
     private OrderSummaryResponse buildOrderSummary(Order order) {
         TrainingRecord training = findLatestTraining(order.getId());
         LocalDateTime now = LocalDateTime.now();
+        order = maybeExpireNoShowOrder(order, training, now);
+        training = findLatestTraining(order.getId());
+        order = maybeAutoCompleteOverdueTraining(order, training, now);
+        training = findLatestTraining(order.getId());
+
         RoomAccessHelper.EnterDecision decision = roomAccessHelper.evaluateEnter(order, training, now);
+        OrderLifecycleSupport.OrderDisplayState display =
+                orderLifecycleSupport.resolveDisplay(order, training, now);
         String sceneName = resolveSceneName(order.getSceneId());
         String trainingGoal = resolveTrainingGoal(order.getUserId());
         boolean hasRated = reviewFlowSupport.hasRated(order.getId());
         boolean reportReady = reviewFlowSupport.isReportReady(order, training);
         boolean coachFeedbackPending = reviewFlowSupport.needsCoachFeedback(order, training);
+        boolean canReview = reviewFlowSupport.canReview(order, training);
+
+        String ribbonLabel = display.ribbonLabel();
+        if (display.sessionEnded()) {
+            ribbonLabel = "已结束";
+        } else if (canReview) {
+            ribbonLabel = "待复盘";
+        }
 
         return OrderSummaryResponse.builder()
                 .orderId(order.getId())
@@ -334,10 +353,36 @@ public class OrderServiceImpl implements OrderService {
                 .enterDeniedReason(decision.denyReason())
                 .payExpireAt(resolvePayExpireAt(order))
                 .hasRated(hasRated)
-                .canReview(reviewFlowSupport.canReview(order, training))
+                .canReview(canReview)
                 .reportReady(reportReady)
                 .coachFeedbackPending(coachFeedbackPending)
+                .ribbonLabel(ribbonLabel)
+                .displayPhase(display.displayPhase())
+                .canCancel(display.canCancel())
+                .canRefund(display.canRefund())
+                .expired(display.expired())
+                .sessionEnded(display.sessionEnded())
                 .build();
+    }
+
+    /** 训练中超时未结束 → 自动归档为已完成 */
+    private Order maybeAutoCompleteOverdueTraining(Order order, TrainingRecord training, LocalDateTime now) {
+        if (!trainingSessionSupport.shouldAutoCompleteOverdue(order, training, now)) {
+            return order;
+        }
+        trainingSessionSupport.autoCompleteOverdueSession(order, training, now);
+        return orderMapper.selectById(order.getId());
+    }
+
+    /** 预约结束仍未进房 → 持久化为 EXPIRED */
+    private Order maybeExpireNoShowOrder(Order order, TrainingRecord training, LocalDateTime now) {
+        if (!orderLifecycleSupport.shouldExpireNoShow(order, training, now)) {
+            return order;
+        }
+        order.setStatus(BusinessStatuses.Order.EXPIRED);
+        order.setUpdatedAt(now);
+        orderMapper.updateById(order);
+        return order;
     }
 
     private Long resolvePayExpireAt(Order order) {
@@ -417,7 +462,14 @@ public class OrderServiceImpl implements OrderService {
                 && !BusinessStatuses.Order.PAID.equals(order.getStatus())) {
             throw new IllegalArgumentException("当前状态不可取消: " + order.getStatus());
         }
+        TrainingRecord training = findLatestTraining(orderId);
         LocalDateTime now = LocalDateTime.now();
+        if (!orderLifecycleSupport.canCancel(order, training, now)) {
+            throw new IllegalArgumentException("当前订单不可取消");
+        }
+        if (BusinessStatuses.Order.PAID.equals(order.getStatus()) && training != null) {
+            throw new IllegalArgumentException("训练已开始，无法取消");
+        }
         order.setStatus(BusinessStatuses.Order.CANCELLED);
         order.setCancelAt(now);
         order.setUpdatedAt(now);
@@ -436,7 +488,11 @@ public class OrderServiceImpl implements OrderService {
                 && !BusinessStatuses.Order.COMPLETED.equals(order.getStatus())) {
             throw new IllegalArgumentException("当前状态不可退款: " + order.getStatus());
         }
+        TrainingRecord training = findLatestTraining(orderId);
         LocalDateTime now = LocalDateTime.now();
+        if (!orderLifecycleSupport.canRefund(order, training, now)) {
+            throw new IllegalArgumentException("当前订单不可申请退款");
+        }
         Refund refund = new Refund();
         refund.setOrderId(orderId);
         refund.setAmount(order.getAmount());

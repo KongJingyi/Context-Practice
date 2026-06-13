@@ -83,13 +83,11 @@ import {
 } from "@/utils/training/webrtc";
 import {
   canUseTrtc,
-  trtcFallbackHint,
   startTrtcSession,
   stopTrtcSession,
   setTrtcAudioEnabled,
   setTrtcVideoEnabled,
 } from "@/utils/training/trtcSession.js";
-import { canUseCamera, cameraBlockedHint } from "@/utils/training/mediaSecurity.js";
 import { fetchJoinInfo, fetchRoomStatus, leaveRoom, endTraining, recordRoomJoin, fetchRoomState } from "@/api/modules/videoConference.js";
 import { setPendingReview } from "@/utils/review/bridge.js";
 import type { ConnectionState, FocusPane } from "@/types/training/room";
@@ -116,7 +114,6 @@ const props = withDefaults(
 );
 
 const sessionId = ref(`sess-${Date.now()}`);
-const sessionStartedAt = ref("");
 const connectionState = ref<ConnectionState>("idle");
 const focusPane = ref<FocusPane>("remote");
 
@@ -146,7 +143,6 @@ const whiteboardVersion = ref(0);
 
 const scenarioLabel = computed(() => props.scenarioId || "实战陪练");
 const connLabel = computed(() => {
-  if (!usingTrtc.value && localStream.value) return "仅本地预览";
   if (connectionState.value === "connecting") return "正在呼叫专家…";
   if (connectionState.value === "connected") return "已连接";
   if (connectionState.value === "failed") return "连接失败";
@@ -182,7 +178,6 @@ async function initSession() {
   connectionState.value = "connecting";
   try {
     const joinInfo = await fetchJoinInfo(props.roomId);
-    sessionStartedAt.value = joinInfo.startedAt || "";
     if (joinInfo.peer?.nickname) {
       remoteStatusText.value = `等待 ${joinInfo.peer.nickname} 加入…`;
     }
@@ -207,9 +202,11 @@ function startPeerPolling() {
     try {
       const status = await fetchRoomStatus(props.roomId!);
       const coach = status.participants?.find((p) => p.role === "COACH" && p.joined);
-      if (coach && !usingTrtc.value) {
-        remoteStatusText.value =
-          "陪练已进房，但 TRTC 未连接，无法看到/听到对方。请检查浏览器控制台 [TRTC] 报错。";
+      if (coach) {
+        remoteConnected.value = true;
+        remoteStatusText.value = "";
+        connectionState.value = "connected";
+        stopPeerPolling();
       }
     } catch {
       /* ignore poll errors */
@@ -272,17 +269,15 @@ async function initMediaFallback() {
     // #ifdef H5
     const stream = await startLocalMedia();
     localStream.value = stream;
-    connectionState.value = usingTrtc.value && remoteConnected.value ? "connected" : "connecting";
+    connectionState.value = remoteConnected.value ? "connected" : "connecting";
     // #endif
     // #ifndef H5
     connectionState.value = "connecting";
     uni.showToast({ title: "请在 H5 浏览器中使用摄像头", icon: "none" });
     // #endif
-  } catch (e) {
+  } catch {
     connectionState.value = "failed";
-    const msg =
-      e instanceof Error ? e.message : "无法打开摄像头，请检查浏览器权限";
-    uni.showToast({ title: msg, icon: "none", duration: 4000 });
+    uni.showToast({ title: "无法打开摄像头，请检查浏览器权限", icon: "none" });
   }
 }
 
@@ -298,7 +293,7 @@ async function initTrtcMedia(joinInfo: {
       sdkAppId: joinInfo.sdkAppId,
       userId: joinInfo.trtcUserId,
       userSig: joinInfo.userSig,
-      roomId: props.roomId || joinInfo.roomId,
+      roomId: props.roomId!,
     },
     {
       onLocalStream: (stream) => {
@@ -319,7 +314,6 @@ async function initTrtcMedia(joinInfo: {
       },
       onError: (err) => {
         console.warn("[TRTC]", err.message);
-        remoteStatusText.value = `TRTC 错误：${err.message}`;
       },
     },
   );
@@ -334,27 +328,15 @@ async function initMedia(joinInfo: {
   userSig: string;
 }) {
   // #ifdef H5
-  if (!canUseCamera()) {
-    connectionState.value = "failed";
-    uni.showToast({ title: cameraBlockedHint(), icon: "none", duration: 5000 });
-    return;
-  }
   if (canUseTrtc(joinInfo.userSig)) {
     try {
       await initTrtcMedia(joinInfo);
       return;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
       console.warn("[TRTC] fallback to local media:", e);
       usingTrtc.value = false;
       await stopTrtcSession();
-      remoteStatusText.value = `${trtcFallbackHint(joinInfo.userSig)}（${msg}）`;
-      uni.showToast({ title: trtcFallbackHint(joinInfo.userSig), icon: "none", duration: 5000 });
     }
-  } else {
-    remoteStatusText.value = trtcFallbackHint(joinInfo.userSig);
-    uni.showToast({ title: remoteStatusText.value, icon: "none", duration: 5000 });
-    console.warn("[TRTC]", remoteStatusText.value);
   }
   startPeerPolling();
   await initMediaFallback();
@@ -380,13 +362,6 @@ function onToolbar(id: string) {
   }
 }
 
-function getElapsedSec() {
-  if (!sessionStartedAt.value) return 0;
-  const start = new Date(sessionStartedAt.value).getTime();
-  if (Number.isNaN(start)) return 0;
-  return Math.floor((Date.now() - start) / 1000);
-}
-
 async function captureHighlight() {
   highlightFlash.value = true;
   setTimeout(() => {
@@ -394,8 +369,7 @@ async function captureHighlight() {
   }, 480);
   await saveHighlightClip({
     sessionId: sessionId.value,
-    roomId: props.roomId,
-    startSec: getElapsedSec(),
+    atMs: Date.now(),
     durationSec: 15,
   });
   highlightCount.value += 1;
@@ -521,7 +495,6 @@ onBeforeUnmount(() => {
   flex: 1;
   display: flex;
   flex-direction: row;
-  align-items: stretch;
   padding: 0 20rpx;
   gap: 14rpx;
   min-height: 0;
@@ -530,7 +503,6 @@ onBeforeUnmount(() => {
   flex: 1;
   position: relative;
   min-height: 56vh;
-  height: 100%;
   border-radius: 24rpx;
   overflow: hidden;
   background: #0f172a;

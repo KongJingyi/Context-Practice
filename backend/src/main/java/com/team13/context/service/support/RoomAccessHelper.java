@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 public class RoomAccessHelper {
 
     private final RoomProperties roomProperties;
+    private final OrderLifecycleSupport orderLifecycleSupport;
 
     public record EnterDecision(boolean canEnter, String denyReason) {
     }
@@ -32,6 +33,10 @@ public class RoomAccessHelper {
         if (BusinessStatuses.Order.PENDING_PAY.equals(status)) {
             return new EnterDecision(false, "订单未支付，无法进入训练");
         }
+        if (BusinessStatuses.Order.EXPIRED.equals(status)
+                || orderLifecycleSupport.shouldExpireNoShow(order, training, now)) {
+            return new EnterDecision(false, "预约时间已过，订单已失效");
+        }
         if (training != null
                 && (TrainingStatuses.ENDED.equals(training.getStatus())
                         || TrainingStatuses.REPORT_READY.equals(training.getStatus()))) {
@@ -46,20 +51,18 @@ public class RoomAccessHelper {
             return new EnterDecision(false, "训练已结束");
         }
 
-        if (order.getScheduledStart() != null) {
-            LocalDateTime earliest = order.getScheduledStart().minusMinutes(roomProperties.getEarlyEnterMinutes());
-            if (now.isBefore(earliest)) {
-                return new EnterDecision(false, "请在预约开始前 " + roomProperties.getEarlyEnterMinutes() + " 分钟内进入");
+        if (!orderLifecycleSupport.isWithinEnterWindow(order, training, now)) {
+            if (order.getScheduledStart() != null) {
+                LocalDateTime earliest = order.getScheduledStart().minusMinutes(roomProperties.getEarlyEnterMinutes());
+                if (now.isBefore(earliest)) {
+                    return new EnterDecision(false, "请在预约开始前 " + roomProperties.getEarlyEnterMinutes() + " 分钟内进入");
+                }
             }
-        }
-        if (order.getScheduledEnd() != null) {
-            LocalDateTime latest = order.getScheduledEnd().plusMinutes(roomProperties.getGraceAfterEndMinutes());
-            if (now.isAfter(latest)) {
-                return new EnterDecision(false, "已超过训练结束时间");
+            if (order.getScheduledEnd() != null && now.isAfter(order.getScheduledEnd())
+                    && (training == null || !TrainingStatuses.IN_PROGRESS.equals(training.getStatus()))) {
+                return new EnterDecision(false, "预约时间已过，订单已失效");
             }
-        }
-        if (training == null && BusinessStatuses.Order.PAID.equals(status)) {
-            return new EnterDecision(true, null);
+            return new EnterDecision(false, "训练已结束");
         }
         return new EnterDecision(true, null);
     }

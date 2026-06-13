@@ -11,13 +11,6 @@ export function canUseTrtc(userSig) {
   return Boolean(userSig && !String(userSig).startsWith("DEV_STUB"));
 }
 
-export function trtcFallbackHint(userSig) {
-  if (!canUseTrtc(userSig)) {
-    return "后端未配置 TRTC_SECRET_KEY，当前仅本地摄像头预览，双方无法通话。";
-  }
-  return "腾讯云 TRTC 未连接，当前仅本地预览，对方看不到也听不到你。";
-}
-
 /** @param {import('trtc-js-sdk').Stream} stream */
 function toMediaStream(stream) {
   if (!stream) return null;
@@ -34,17 +27,11 @@ function toMediaStream(stream) {
 export async function startTrtcSession(params, callbacks = {}) {
   await stopTrtcSession();
 
-  const roomId = String(params.roomId || "").trim();
-  if (!roomId) {
-    throw new Error("缺少 roomId，无法加入 TRTC 房间");
-  }
-
   client = TRTC.createClient({
     mode: "rtc",
     sdkAppId: params.sdkAppId,
     userId: params.userId,
     userSig: params.userSig,
-    useStringRoomId: true,
   });
 
   client.on("error", (error) => {
@@ -67,11 +54,7 @@ export async function startTrtcSession(params, callbacks = {}) {
     }
   });
 
-  client.on("peer-join", () => {
-    callbacks.onRemoteUserJoined?.();
-  });
-
-  await client.join({ roomId });
+  await client.join({ strRoomId: params.roomId });
 
   localTrtcStream = TRTC.createStream({
     userId: params.userId,

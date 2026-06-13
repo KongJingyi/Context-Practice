@@ -16,10 +16,24 @@ public class Post {
 
     private Long authorId;
 
+    private Long coachId;
+
+    /** NOTE / HIGHLIGHT / EXPERIENCE */
     private String kind;
+
+    private String title;
 
     private String content;
 
+    private Integer hotScore;
+
+    private Integer likeCount;
+
+    private Integer commentCount;
+
+    private Integer collectCount;
+
+    /** JSON 扩展：type, tags, company, role, video_preview, display_name, display_medal */
     private String mediaUrls;
 
     private Integer status;

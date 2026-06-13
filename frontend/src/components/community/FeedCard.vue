@@ -63,7 +63,7 @@
 import { ref } from "vue";
 import LikeBurst from "@/components/community/LikeBurst.vue";
 import HighlightPlayer from "@/components/community/HighlightPlayer.vue";
-import { likePost } from "@/api/modules/community.js";
+import { likePost, collectPost } from "@/api/modules/community.js";
 import type { CommunityPost } from "@/types/community";
 
 const props = defineProps<{ post: CommunityPost }>();
@@ -96,8 +96,9 @@ async function toggleLike() {
   });
 }
 
-function toggleCollect() {
+async function toggleCollect() {
   const collected = !props.post.collected;
+  await collectPost(props.post.id, collected);
   emit("update", {
     ...props.post,
     collected,

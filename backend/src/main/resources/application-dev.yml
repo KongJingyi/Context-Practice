@@ -6,7 +6,7 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/context_practice?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:123456}
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   data:
@@ -24,9 +24,9 @@ spring:
 
 app:
   room:
-    # 本地随时进房联调（生产仍用 application.yml 的 5 分钟）
-    early-enter-minutes: 1440
-    grace-after-end-minutes: 120
+    # 预约开始前 10 分钟可进房；训练开始后至 scheduledEnd + grace 仍可进房
+    early-enter-minutes: 10
+    grace-after-end-minutes: 15
   auth:
     # 本地联调可在 .env 设 SMS_PROVIDER=dev、SMS_DEV_FIXED_CODE=888888（.env 已 gitignore，不会提交/被 pull 覆盖）
     sms-provider: ${SMS_PROVIDER:dev}

@@ -1,51 +1,7 @@
 import path from "node:path";
-import fs from "node:fs";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import uni from "@dcloudio/vite-plugin-uni";
 import basicSsl from "@vitejs/plugin-basic-ssl";
-
-const FAVICON_FILES = ["favicon.ico", "favicon.png", "favicon.svg"] as const;
-const FAVICON_MIME: Record<string, string> = {
-  ".ico": "image/x-icon",
-  ".png": "image/png",
-  ".svg": "image/svg+xml",
-};
-
-/** uni-app 的 static 目录挂在 /static；浏览器默认请求根路径 /favicon.ico */
-function faviconAtRootPlugin(staticDir: string): Plugin {
-  return {
-    name: "favicon-at-root",
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        const url = req.url?.split("?")[0] ?? "";
-        const name = FAVICON_FILES.find((file) => url === `/${file}`);
-        if (!name) return next();
-
-        const filePath = path.join(staticDir, name);
-        if (!fs.existsSync(filePath)) return next();
-
-        res.statusCode = 200;
-        res.setHeader("Content-Type", FAVICON_MIME[path.extname(name)] ?? "application/octet-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        fs.createReadStream(filePath).pipe(res);
-      });
-    },
-    closeBundle() {
-      const outDirs = [
-        path.resolve(process.cwd(), "dist/build/h5"),
-        path.resolve(process.cwd(), "dist/dev/h5"),
-      ];
-      for (const outDir of outDirs) {
-        if (!fs.existsSync(outDir)) continue;
-        for (const name of FAVICON_FILES) {
-          const src = path.join(staticDir, name);
-          if (!fs.existsSync(src)) continue;
-          fs.copyFileSync(src, path.join(outDir, name));
-        }
-      }
-    },
-  };
-}
 
 /**
  * Uni-app + Vite：同一套代码发布 H5 与微信小程序。
@@ -60,10 +16,9 @@ export default defineConfig(({ mode }) => {
   const devPort = Number(env.VITE_DEV_PORT || 5173);
   const publicOrigin = env.VITE_DEV_PUBLIC_ORIGIN?.trim();
   const useHttps = env.VITE_DEV_HTTPS === "true";
-  const staticDir = path.resolve(__dirname, "static");
 
   return {
-    plugins: [uni(), faviconAtRootPlugin(staticDir), ...(useHttps ? [basicSsl()] : [])],
+    plugins: [uni(), ...(useHttps ? [basicSsl()] : [])],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "src"),

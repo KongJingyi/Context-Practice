@@ -23,12 +23,18 @@ function getBaseURL() {
  * @returns {Promise<import('@/types/auth/verify').AuthVerifyStatusResponse>}
  */
 export async function fetchAuthStatus() {
-  const data = await request({ url: "/auth/status", method: "GET" });
-  if (data && data.status) {
-    uni.setStorageSync(VERIFY_KEY, data.status);
-    return /** @type {import('@/types/auth/verify').AuthVerifyStatusResponse} */ (data);
+  try {
+    const data = await request({ url: "/auth/status", method: "GET" });
+    if (data && data.status) {
+      uni.setStorageSync(VERIFY_KEY, data.status);
+      return /** @type {import('@/types/auth/verify').AuthVerifyStatusResponse} */ (data);
+    }
+  } catch {
+    /* mock */
   }
-  return { status: "unverified" };
+  const cached = uni.getStorageSync(VERIFY_KEY);
+  const status = cached || "unverified";
+  return { status };
 }
 
 /**

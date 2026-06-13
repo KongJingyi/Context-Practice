@@ -64,7 +64,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/v1/auth/register/**",
                         "/api/v1/auth/oauth/**",
                         "/api/v1/posts",
+                        "/api/v1/posts/**/comments",
                         "/api/v1/community/expert-tips",
+                        "/api/v1/practice/questions/categories",
+                        "/api/v1/practice/questions",
                         "/api/v1/trtc/recording-callback");
     }
 }

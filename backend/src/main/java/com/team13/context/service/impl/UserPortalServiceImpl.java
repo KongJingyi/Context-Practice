@@ -18,16 +18,12 @@ import com.team13.context.entity.TrainingReport;
 import com.team13.context.mapper.TrainingReportMapper;
 import com.team13.context.service.support.CoachRoleSupport;
 import com.team13.context.entity.TrainingRecord;
-import com.team13.context.auth.sms.SmsVerificationClient;
-import com.team13.context.auth.SmsRateLimiter;
 import com.team13.context.entity.User;
-import com.team13.context.entity.UserAuth;
 import com.team13.context.entity.UserProfile;
 import com.team13.context.entity.VerificationRequest;
 import com.team13.context.mapper.OrderMapper;
 import com.team13.context.mapper.TrainingRecordMapper;
 import com.team13.context.mapper.UserMapper;
-import com.team13.context.mapper.UserAuthMapper;
 import com.team13.context.mapper.UserProfileMapper;
 import com.team13.context.mapper.VerificationRequestMapper;
 import com.team13.context.service.frontend.UserPortalService;
@@ -53,11 +49,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class UserPortalServiceImpl implements UserPortalService {
 
     private static final String VERIFY_KIND_ID_DOC = "USER_ID_DOC";
-    private static final String PROVIDER_MOBILE = "MOBILE";
-    private static final String SMS_SCENE_CHANGE_PHONE = "change_phone";
 
     private final UserMapper userMapper;
-    private final UserAuthMapper userAuthMapper;
     private final UserProfileMapper userProfileMapper;
     private final VerificationRequestMapper verificationRequestMapper;
     private final OrderMapper orderMapper;
@@ -72,8 +65,6 @@ public class UserPortalServiceImpl implements UserPortalService {
     private final CoachSceneMapper coachSceneMapper;
     private final RatingMapper ratingMapper;
     private final TrainingReportMapper trainingReportMapper;
-    private final SmsVerificationClient smsVerificationClient;
-    private final SmsRateLimiter smsRateLimiter;
 
     private final Map<Long, Map<String, Object>> privacyCache = new ConcurrentHashMap<>();
     private final Map<Long, Map<String, Object>> notifyCache = new ConcurrentHashMap<>();
@@ -374,25 +365,6 @@ public class UserPortalServiceImpl implements UserPortalService {
         return raw != null ? String.valueOf(raw).trim() : "";
     }
 
-    private static String requirePhone(Object raw) {
-        String phone = stringVal(raw);
-        if (!phone.matches("^1[3-9]\\d{9}$")) {
-            throw new IllegalArgumentException("请输入正确手机号");
-        }
-        return phone;
-    }
-
-    private void assertPhoneNotBoundByOther(Long userId, String phone) {
-        User existing = userMapper.selectOne(
-                Wrappers.<User>lambdaQuery()
-                        .eq(User::getMobile, phone)
-                        .ne(User::getId, userId)
-                        .last("LIMIT 1"));
-        if (existing != null) {
-            throw new IllegalArgumentException("该手机号已被其他账号绑定");
-        }
-    }
-
     @Override
     public Map<String, Object> getSecurityInfo() {
         Long userId = UserContext.requireUserId();
@@ -403,57 +375,18 @@ public class UserPortalServiceImpl implements UserPortalService {
     }
 
     @Override
-    public Map<String, Object> sendChangePhoneCode(Map<String, Object> body) {
-        Long userId = UserContext.requireUserId();
-        String phone = requirePhone(body.get("phone"));
-        assertPhoneNotBoundByOther(userId, phone);
-
-        smsRateLimiter.checkAllowed(phone);
-        SmsVerificationClient.SmsSendResult sendResult = smsVerificationClient.send(phone, SMS_SCENE_CHANGE_PHONE);
-
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("expireIn", authProperties.getSmsExpireSeconds());
-        if (sendResult.devCode() != null) {
-            data.put("devCode", sendResult.devCode());
+    public Map<String, Object> updatePassword(Map<String, Object> body) {
+        String newPwd = body.get("new_password") != null ? String.valueOf(body.get("new_password"))
+                : String.valueOf(body.getOrDefault("newPassword", ""));
+        if (newPwd.length() < 8) {
+            throw new IllegalArgumentException("新密码至少 8 位");
         }
-        return data;
+        return Map.of("ok", true);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> updatePhone(Map<String, Object> body) {
-        Long userId = UserContext.requireUserId();
-        String phone = requirePhone(body.get("phone"));
-        String code = stringVal(body.get("code"));
-        if (!StringUtils.hasText(code)) {
-            throw new IllegalArgumentException("请输入短信验证码");
-        }
-        if (!smsVerificationClient.verify(phone, SMS_SCENE_CHANGE_PHONE, code)) {
-            throw new IllegalArgumentException("短信验证码错误或已过期");
-        }
-        assertPhoneNotBoundByOther(userId, phone);
-
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new IllegalArgumentException("用户不存在");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        user.setMobile(phone);
-        user.setUpdatedAt(now);
-        userMapper.updateById(user);
-
-        UserAuth auth = userAuthMapper.selectOne(
-                Wrappers.<UserAuth>lambdaQuery()
-                        .eq(UserAuth::getUserId, userId)
-                        .eq(UserAuth::getProvider, PROVIDER_MOBILE)
-                        .last("LIMIT 1"));
-        if (auth != null) {
-            auth.setMobile(phone);
-            auth.setUpdatedAt(now);
-            userAuthMapper.updateById(auth);
-        }
-
+        String phone = String.valueOf(body.getOrDefault("phone", ""));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("ok", true);
         data.put("phoneMasked", UserDisplayHelper.maskPhone(phone));

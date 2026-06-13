@@ -36,14 +36,6 @@
             :stream="pipPane.stream"
             @tap="swapFocus"
           />
-          <WhiteboardPanel
-            :visible="whiteboardActive"
-            :strokes="whiteboardStrokes"
-            :version="whiteboardVersion"
-            @stroke="onWhiteboardStroke"
-            @clear="clearWhiteboard"
-            @close="toggleWhiteboard(false)"
-          />
         </div>
         <div class="tr-wave-col">
           <VoiceWaveform :active="connectionState === 'connected'" />
@@ -56,15 +48,11 @@
         :countdown-active="countdownActive"
         :countdown-left="countdownLeft"
         :countdown-percent="countdownPercent"
-        :whiteboard-active="whiteboardActive"
-        :uploading="uploadingMaterial"
         @countdown="startCountdown"
         @stop-countdown="stopCountdown"
         @interrupt="doInterrupt"
         @question="doQuestion"
         @chat="sendChat"
-        @whiteboard-toggle="toggleWhiteboard()"
-        @upload-material="handleUploadMaterial"
       />
     </div>
 
@@ -86,23 +74,14 @@ import RoomToolbar from "@/components/training/RoomToolbar.vue";
 import VoiceWaveform from "@/components/training/VoiceWaveform.vue";
 import HighlightFlash from "@/components/training/HighlightFlash.vue";
 import CoachToolbox from "@/components/training/CoachToolbox.vue";
-import WhiteboardPanel from "@/components/training/WhiteboardPanel.vue";
 import { saveHighlightClip } from "@/api/modules/trainingRoom";
 import {
   startLocalMedia,
   stopLocalMedia,
   setLocalAudioEnabled,
   setLocalVideoEnabled,
+  setWebRTCHooks,
 } from "@/utils/training/webrtc";
-import {
-  canUseTrtc,
-  trtcFallbackHint,
-  startTrtcSession,
-  stopTrtcSession,
-  setTrtcAudioEnabled,
-  setTrtcVideoEnabled,
-} from "@/utils/training/trtcSession";
-import { canUseCamera, cameraBlockedHint } from "@/utils/training/mediaSecurity";
 import {
   fetchJoinInfo,
   fetchRoomStatus,
@@ -113,14 +92,8 @@ import {
   postPressureInterrupt,
   postPressureQuestion,
   postRoomChat,
-  fetchRoomState,
-  fetchRoomChat,
-  postWhiteboardToggle,
-  postWhiteboardStrokes,
-  postWhiteboardClear,
-  type WhiteboardStroke,
 } from "@/api/modules/videoConference";
-import { fetchMaterials, uploadMaterial, type MaterialItem } from "@/api/modules/materials";
+import { fetchMaterials, type MaterialItem } from "@/api/modules/materials";
 import type { RoomJoinInfo } from "@/types/videoConference";
 
 type ConnectionState = "idle" | "connecting" | "connected" | "failed";
@@ -136,10 +109,8 @@ const connectionState = ref<ConnectionState>("idle");
 const focusPane = ref<FocusPane>("remote");
 
 const localStream = ref<MediaStream | null>(null);
-const remoteStream = ref<MediaStream | null>(null);
 const remoteConnected = ref(false);
 const remoteStatusText = ref("等待学员加入…");
-const usingTrtc = ref(false);
 
 const muted = ref(false);
 const cameraOff = ref(false);
@@ -149,7 +120,6 @@ const highlightCount = ref(0);
 const elapsed = ref("00:00");
 let elapsedTimer: ReturnType<typeof setInterval> | null = null;
 let peerPollTimer: ReturnType<typeof setInterval> | null = null;
-let statePollTimer: ReturnType<typeof setInterval> | null = null;
 
 const countdownActive = ref(false);
 const countdownLeft = ref(0);
@@ -158,11 +128,6 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
 const messages = ref<{ from: string; text: string }[]>([]);
 const materials = ref<MaterialItem[]>([]);
-const uploadingMaterial = ref(false);
-
-const whiteboardActive = ref(false);
-const whiteboardStrokes = ref<WhiteboardStroke[]>([]);
-const whiteboardVersion = ref(0);
 
 const countdownPercent = computed(() =>
   countdownTotal.value ? (countdownLeft.value / countdownTotal.value) * 100 : 0,
@@ -175,7 +140,6 @@ const scenarioLabel = computed(() => {
 });
 
 const connLabel = computed(() => {
-  if (!usingTrtc.value && localStream.value) return "仅本地预览";
   if (connectionState.value === "connecting") return "等待学员…";
   if (connectionState.value === "connected") return "已连接";
   if (connectionState.value === "failed") return "连接失败";
@@ -190,7 +154,7 @@ function paneConfig(which: FocusPane) {
     label: isLocal ? "我" : peerName,
     connected,
     isLocal,
-    stream: isLocal ? localStream.value : remoteStream.value,
+    stream: isLocal ? localStream.value : null,
     statusText: isLocal ? "" : remoteStatusText.value,
   };
 }
@@ -203,16 +167,12 @@ function swapFocus() {
   focusPane.value = focusPane.value === "remote" ? "local" : "remote";
 }
 
-function getElapsedSec() {
-  const startedAt = joinInfo.value?.startedAt;
-  if (!startedAt) return 0;
-  const start = new Date(startedAt).getTime();
-  if (Number.isNaN(start)) return 0;
-  return Math.floor((Date.now() - start) / 1000);
-}
-
 function updateElapsed() {
-  const diff = getElapsedSec();
+  const startedAt = joinInfo.value?.startedAt;
+  if (!startedAt) return;
+  const start = new Date(startedAt).getTime();
+  if (Number.isNaN(start)) return;
+  const diff = Math.floor((Date.now() - start) / 1000);
   elapsed.value = `${String(Math.floor(diff / 60)).padStart(2, "0")}:${String(diff % 60).padStart(2, "0")}`;
 }
 
@@ -223,9 +183,11 @@ function startPeerPolling() {
     try {
       const status = await fetchRoomStatus(roomId);
       const student = status.participants?.find((p) => p.role === "USER" && p.joined);
-      if (student && !usingTrtc.value) {
-        remoteStatusText.value =
-          "学员已进房，但 TRTC 未连接，无法看到/听到对方。请检查浏览器控制台 [TRTC] 报错。";
+      if (student) {
+        remoteConnected.value = true;
+        remoteStatusText.value = "";
+        connectionState.value = "connected";
+        stopPeerPolling();
       }
     } catch {
       /* ignore */
@@ -240,174 +202,21 @@ function stopPeerPolling() {
   }
 }
 
-function startStatePolling() {
-  if (!roomId) return;
-  stopStatePolling();
-  void pollRoomState();
-  statePollTimer = setInterval(pollRoomState, 2000);
-}
-
-function stopStatePolling() {
-  if (statePollTimer) {
-    clearInterval(statePollTimer);
-    statePollTimer = null;
-  }
-}
-
-async function pollRoomState() {
+async function initMedia() {
+  setWebRTCHooks({
+    onTrack: (stream, kind) => {
+      if (kind === "local") localStream.value = stream;
+    },
+  });
   try {
-    const [state, chatPage] = await Promise.all([
-      fetchRoomState(roomId),
-      fetchRoomChat(roomId),
-    ]);
-    if (state.whiteboard) {
-      whiteboardActive.value = state.whiteboard.active;
-      if (state.whiteboard.version !== whiteboardVersion.value) {
-        whiteboardVersion.value = state.whiteboard.version;
-        whiteboardStrokes.value = state.whiteboard.strokes || [];
-      }
-    }
-    const cd = state.pressureMode?.countdown;
-    if (cd?.active && cd.secondsLeft != null) {
-      countdownActive.value = true;
-      countdownLeft.value = cd.secondsLeft;
-      countdownTotal.value = cd.totalSeconds || cd.secondsLeft;
-    } else if (!countdownTimer) {
-      countdownActive.value = false;
-    }
-    const records = (chatPage as { records?: { fromRole: string; text: string }[] })?.records;
-    if (records?.length) {
-      messages.value = records.map((r) => ({
-        from: r.fromRole === "COACH" ? "coach" : "user",
-        text: r.text,
-      }));
-    }
-  } catch {
-    /* ignore poll errors */
-  }
-}
-
-async function toggleWhiteboard(force?: boolean) {
-  const next = force !== undefined ? force : !whiteboardActive.value;
-  try {
-    const wb = await postWhiteboardToggle(roomId, next);
-    whiteboardActive.value = wb.active;
-    whiteboardVersion.value = wb.version;
-    whiteboardStrokes.value = wb.strokes || [];
-  } catch {
-    whiteboardActive.value = next;
-  }
-}
-
-async function onWhiteboardStroke(stroke: WhiteboardStroke) {
-  whiteboardStrokes.value = [...whiteboardStrokes.value, stroke];
-  try {
-    const wb = await postWhiteboardStrokes(roomId, [stroke]);
-    whiteboardVersion.value = wb.version;
-  } catch {
-    /* local stroke kept */
-  }
-}
-
-async function clearWhiteboard() {
-  try {
-    const wb = await postWhiteboardClear(roomId);
-    whiteboardStrokes.value = wb.strokes || [];
-    whiteboardVersion.value = wb.version;
-  } catch {
-    whiteboardStrokes.value = [];
-  }
-}
-
-async function handleUploadMaterial(file: File) {
-  uploadingMaterial.value = true;
-  try {
-    const item = await uploadMaterial(roomId, file);
-    materials.value = [...materials.value, item];
-  } catch {
-    window.alert("资料上传失败，请重试");
-  } finally {
-    uploadingMaterial.value = false;
-  }
-}
-
-async function initMediaFallback() {
-  try {
-    const stream = await startLocalMedia();
-    localStream.value = stream;
-    connectionState.value = usingTrtc.value && remoteConnected.value ? "connected" : "connecting";
+    await startLocalMedia();
+    connectionState.value = remoteConnected.value ? "connected" : "connecting";
     if (joinInfo.value?.canEnter) {
       await recordRoomJoin(roomId);
     }
-  } catch (e) {
+  } catch {
     connectionState.value = "failed";
-    remoteStatusText.value =
-      e instanceof Error ? e.message : "无法打开摄像头，请检查浏览器权限";
   }
-}
-
-async function initTrtcMedia(info: RoomJoinInfo) {
-  usingTrtc.value = true;
-  await startTrtcSession(
-    {
-      sdkAppId: info.sdkAppId,
-      userId: info.trtcUserId,
-      userSig: info.userSig,
-      roomId: roomId || info.roomId,
-    },
-    {
-      onLocalStream: (stream) => {
-        localStream.value = stream;
-      },
-      onRemoteStream: (stream) => {
-        remoteStream.value = stream;
-        remoteConnected.value = true;
-        remoteStatusText.value = "";
-        connectionState.value = "connected";
-        stopPeerPolling();
-      },
-      onRemoteUserJoined: () => {
-        remoteConnected.value = true;
-        remoteStatusText.value = "";
-        connectionState.value = "connected";
-        stopPeerPolling();
-      },
-      onError: (err) => {
-        console.warn("[TRTC]", err.message);
-        remoteStatusText.value = `TRTC 错误：${err.message}`;
-      },
-    },
-  );
-  connectionState.value = remoteConnected.value ? "connected" : "connecting";
-  await recordRoomJoin(roomId);
-}
-
-async function initMedia() {
-  const info = joinInfo.value;
-  if (!info) return;
-  if (!canUseCamera()) {
-    connectionState.value = "failed";
-    remoteStatusText.value = cameraBlockedHint();
-    window.alert(cameraBlockedHint());
-    return;
-  }
-  if (canUseTrtc(info.userSig)) {
-    try {
-      await initTrtcMedia(info);
-      return;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      console.warn("[TRTC] fallback to local media:", e);
-      usingTrtc.value = false;
-      await stopTrtcSession();
-      remoteStatusText.value = `${trtcFallbackHint(info.userSig)}（${msg}）`;
-    }
-  } else {
-    remoteStatusText.value = trtcFallbackHint(info.userSig);
-    console.warn("[TRTC]", remoteStatusText.value);
-  }
-  startPeerPolling();
-  await initMediaFallback();
 }
 
 async function initSession() {
@@ -428,7 +237,7 @@ async function initSession() {
     updateElapsed();
     elapsedTimer = setInterval(updateElapsed, 1000);
     materials.value = await fetchMaterials(roomId);
-    startStatePolling();
+    startPeerPolling();
     await initMedia();
   } catch (e) {
     connectionState.value = "failed";
@@ -439,12 +248,10 @@ async function initSession() {
 function onToolbar(id: string) {
   if (id === "mute") {
     muted.value = !muted.value;
-    if (usingTrtc.value) setTrtcAudioEnabled(!muted.value);
-    else setLocalAudioEnabled(!muted.value);
+    setLocalAudioEnabled(!muted.value);
   } else if (id === "camera") {
     cameraOff.value = !cameraOff.value;
-    if (usingTrtc.value) setTrtcVideoEnabled(!cameraOff.value);
-    else setLocalVideoEnabled(!cameraOff.value);
+    setLocalVideoEnabled(!cameraOff.value);
   } else if (id === "highlight") {
     captureHighlight();
   } else if (id === "hangup") {
@@ -460,7 +267,7 @@ async function captureHighlight() {
   await saveHighlightClip({
     sessionId: sessionId.value,
     roomId,
-    startSec: getElapsedSec(),
+    atMs: Date.now(),
     durationSec: 15,
   });
   highlightCount.value += 1;
@@ -470,8 +277,7 @@ function endSession() {
   if (!window.confirm("确定结束训练并离开房间吗？")) return;
   void (async () => {
     stopPeerPolling();
-    if (usingTrtc.value) await stopTrtcSession();
-    else stopLocalMedia();
+    stopLocalMedia();
     stopCountdown();
     try {
       const result = await endRoomByCoach(roomId);
@@ -507,12 +313,9 @@ function doInterrupt(message: string) {
   postPressureInterrupt(roomId, message).catch(() => {});
 }
 
-function doQuestion(text: string, questionId?: string) {
+function doQuestion(text: string) {
   messages.value.push({ from: "coach", text: `[提问] ${text}` });
-  postPressureQuestion(roomId, {
-    text,
-    questionId: questionId ? Number(questionId) : undefined,
-  }).catch(() => {});
+  postPressureQuestion(roomId, { text }).catch(() => {});
 }
 
 function sendChat(text: string) {
@@ -526,9 +329,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopPeerPolling();
-  stopStatePolling();
-  if (usingTrtc.value) void stopTrtcSession();
-  else stopLocalMedia();
+  stopLocalMedia();
   if (elapsedTimer) clearInterval(elapsedTimer);
   if (countdownTimer) clearInterval(countdownTimer);
 });

@@ -59,22 +59,10 @@
         </div>
       </div>
 
-      <!-- 录制回放 -->
-      <div v-if="showRecordingSection" class="coach-card p-6 mt-6">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="font-semibold text-slate-900">最近训练录制</h2>
-            <p v-if="recordingStatusLabel" class="text-xs text-slate-400 mt-1">{{ recordingStatusLabel }}</p>
-          </div>
-          <a
-            v-if="recording?.recordingUrl"
-            :href="recording.recordingUrl"
-            target="_blank"
-            rel="noopener"
-            class="text-xs text-teal-600 hover:underline"
-          >查看回放</a>
-        </div>
-        <div v-if="recording?.highlights?.length" class="grid md:grid-cols-3 gap-3">
+      <!-- 录制亮点 -->
+      <div v-if="recording?.highlights.length" class="coach-card p-6 mt-6">
+        <h2 class="font-semibold text-slate-900 mb-4">最近训练录制亮点</h2>
+        <div class="grid md:grid-cols-3 gap-3">
           <div
             v-for="(h, i) in recording.highlights"
             :key="i"
@@ -83,15 +71,8 @@
             <span class="text-xs font-bold text-teal-600">片段 {{ i + 1 }}</span>
             <p class="text-sm font-medium text-slate-800 mt-2">{{ h.label }}</p>
             <p class="text-xs text-slate-400 font-mono mt-1">{{ formatTime(h.startSec) }} – {{ formatTime(h.endSec) }}</p>
-            <a v-if="h.clipUrl" :href="h.clipUrl" target="_blank" rel="noopener" class="text-xs text-teal-600 hover:underline mt-1 inline-block">播放片段</a>
           </div>
         </div>
-        <p v-else-if="recording?.recordingUrl" class="text-sm text-slate-500">
-          本场暂无高光标记，可直接查看完整回放。
-        </p>
-        <p v-else-if="recording?.recordingStatus === 'PROCESSING'" class="text-sm text-slate-500">
-          录制已结束，正在生成回放，通常需 30 秒至 3 分钟。
-        </p>
       </div>
     </template>
   </CoachLayout>
@@ -118,36 +99,13 @@ const levelSteps = computed(() => {
   ];
 });
 
-const showRecordingSection = computed(() => {
-  const r = recording.value;
-  if (!r) return false;
-  return Boolean(r.recordingUrl)
-    || (r.highlights?.length ?? 0) > 0
-    || (r.recordingStatus && r.recordingStatus !== "IDLE");
-});
-
-const recordingStatusLabel = computed(() => {
-  const status = recording.value?.recordingStatus;
-  if (!status || status === "READY") return "";
-  const labels: Record<string, string> = {
-    RECORDING: "录制中",
-    PROCESSING: "生成回放中",
-    FAILED: "录制失败",
-    EXPIRED: "回放已过期",
-  };
-  return labels[status] ?? status;
-});
-
 function formatTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 }
 
 onMounted(async () => {
   dashboard.value = await fetchCoachDashboard();
-  const trainingId = dashboard.value?.lastTrainingId;
-  if (trainingId) {
-    recording.value = await fetchRecording(trainingId);
-  }
+  recording.value = await fetchRecording(100);
   loading.value = false;
 });
 </script>

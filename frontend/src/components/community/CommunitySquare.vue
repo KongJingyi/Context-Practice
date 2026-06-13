@@ -5,6 +5,17 @@
       <text class="cs-sub">心得 · 高光 · 面经，一起练出职场表达力</text>
     </view>
 
+    <view class="cs-lab" @tap="goPracticeLab">
+      <view class="cs-lab-main">
+        <text class="cs-lab-ico">🧪</text>
+        <view>
+          <text class="cs-lab-title">练习实验室</text>
+          <text class="cs-lab-sub">先自测 · 再对练 · 低价高频磨表达</text>
+        </view>
+      </view>
+      <text class="cs-lab-go">进入 ›</text>
+    </view>
+
     <ExpertTipsScroll v-if="experts.length" :tips="experts" />
 
     <view class="cs-tabs">
@@ -81,11 +92,7 @@ async function loadFeed() {
       fetchPosts({ type: filter.value }),
       experts.value.length ? Promise.resolve(experts.value) : fetchExpertTips(),
     ]);
-    posts.value = (feed || []).map((p: CommunityPost) => ({
-      ...p,
-      liked: false,
-      collected: false,
-    }));
+    posts.value = feed || [];
     if (!experts.value.length) experts.value = tips || [];
   } finally {
     loading.value = false;
@@ -118,6 +125,10 @@ function onCommented() {
   activeCommentCount.value += 1;
 }
 
+function goPracticeLab() {
+  uni.navigateTo({ url: "/pages/practice-lab/practice-lab" });
+}
+
 onMounted(loadFeed);
 </script>
 
@@ -142,6 +153,45 @@ onMounted(loadFeed);
   margin-top: 8rpx;
   font-size: 24rpx;
   color: #64748b;
+}
+
+.cs-lab {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1rpx solid #bfdbfe;
+  cursor: pointer;
+}
+.cs-lab-main {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+}
+.cs-lab-ico {
+  font-size: 44rpx;
+}
+.cs-lab-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #1e40af;
+}
+.cs-lab-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+.cs-lab-go {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #2563eb;
 }
 
 .cs-tabs {

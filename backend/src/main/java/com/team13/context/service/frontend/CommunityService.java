@@ -13,6 +13,12 @@ public interface CommunityService {
 
     Map<String, Object> likePost(String postId, Map<String, Object> body);
 
+    Map<String, Object> collectPost(String postId, Map<String, Object> body);
+
+    List<Map<String, Object>> listExpertTips();
+
+    List<Map<String, Object>> listMyFootprint();
+
     List<Map<String, Object>> listAdminPosts(Integer status, String keyword, int page, int size);
 
     Map<String, Object> updatePostStatus(Long postId, int status);

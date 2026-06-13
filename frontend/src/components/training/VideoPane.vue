@@ -84,11 +84,6 @@ function ensureNativeVideo(): HTMLVideoElement | null {
     nativeVideo.setAttribute("playsinline", "true");
     nativeVideo.setAttribute("webkit-playsinline", "true");
     nativeVideo.controls = false;
-    nativeVideo.style.width = "100%";
-    nativeVideo.style.height = "100%";
-    nativeVideo.style.objectFit = "cover";
-    nativeVideo.style.display = "block";
-    nativeVideo.style.background = "#111827";
     host.appendChild(nativeVideo);
   }
   nativeVideo.muted = props.isLocal !== false;
@@ -135,9 +130,6 @@ onBeforeUnmount(() => {
     border-color 0.3s ease;
 }
 .vp--main {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
   width: 100%;
   height: 100%;
   min-height: 100%;
@@ -160,9 +152,7 @@ onBeforeUnmount(() => {
   z-index: 1;
   overflow: hidden;
 }
-:deep(.vp-video) {
-  position: absolute;
-  inset: 0;
+.vp-video {
   width: 100%;
   height: 100%;
   object-fit: cover;

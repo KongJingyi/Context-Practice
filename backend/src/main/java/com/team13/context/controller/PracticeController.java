@@ -1,7 +1,7 @@
 package com.team13.context.controller;
 
 import com.team13.context.common.ApiResult;
-import com.team13.context.service.frontend.ContentCompatService;
+import com.team13.context.service.frontend.PracticeLabService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,25 +20,25 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PracticeController {
 
-    private final ContentCompatService contentCompatService;
+    private final PracticeLabService practiceLabService;
 
     @GetMapping("/questions/categories")
     public ApiResult<List<Map<String, Object>>> categories() {
-        return ApiResult.ok(contentCompatService.listQuestionCategories());
+        return ApiResult.ok(practiceLabService.listQuestionCategories());
     }
 
     @GetMapping("/questions")
     public ApiResult<List<Map<String, Object>>> questions(@RequestParam(required = false) String category) {
-        return ApiResult.ok(contentCompatService.listQuestions(category));
+        return ApiResult.ok(practiceLabService.listQuestions(category));
     }
 
     @PostMapping("/analyze-voice")
     public ApiResult<Map<String, Object>> analyzeVoice(@RequestBody Map<String, Object> body) {
-        return ApiResult.ok(contentCompatService.analyzeVoice(body));
+        return ApiResult.ok(practiceLabService.analyzeVoice(body));
     }
 
     @PostMapping("/optimize-text")
     public ApiResult<Map<String, Object>> optimizeText(@RequestBody Map<String, Object> body) {
-        return ApiResult.ok(contentCompatService.optimizeText(body));
+        return ApiResult.ok(practiceLabService.optimizeText(body));
     }
 }

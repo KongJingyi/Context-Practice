@@ -192,19 +192,7 @@ function normalizeApiReport(raw) {
       content: f.content,
       suggestion: f.suggestion,
     })),
-    timelineMarkers: (raw.expert_feedback || []).map((f, i) => ({
-      id: `fb-${i}`,
-      seconds: parseTimestampSafe(f.timestamp),
-      label:
-        f.type === "question"
-          ? "专家提问"
-          : f.type === "highlight"
-            ? "表达亮点"
-            : f.type === "turn"
-              ? "逻辑转折"
-              : "待改进",
-      type: f.type,
-    })),
+    timelineMarkers: [],
     videoUrl: raw.video_url || "",
     videoDurationSec: raw.video_duration_sec || 600,
     milestone: raw.milestone || "",

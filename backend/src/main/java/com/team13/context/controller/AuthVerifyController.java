@@ -45,9 +45,9 @@ public class AuthVerifyController {
         return ApiResult.ok(userPortalService.getSecurityInfo());
     }
 
-    @PostMapping("/v1/user/security/send-phone-code")
-    public ApiResult<Map<String, Object>> sendChangePhoneCode(@RequestBody Map<String, Object> body) {
-        return ApiResult.ok(userPortalService.sendChangePhoneCode(body));
+    @PostMapping("/v1/user/security/update-password")
+    public ApiResult<Map<String, Object>> updatePassword(@RequestBody Map<String, Object> body) {
+        return ApiResult.ok(userPortalService.updatePassword(body));
     }
 
     @PostMapping("/v1/user/security/update-phone")

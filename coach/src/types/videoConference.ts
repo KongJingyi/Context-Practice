@@ -47,8 +47,6 @@ export interface OrderApiRecord {
   scheduledStart: string; scheduledEnd: string; roomId: string | null;
   trainingStatus: ApiTrainingStatus; canEnterRoom: boolean; enterDeniedReason?: string | null;
   userId?: number; userName?: string; userAvatar?: string; trainingStartedAt?: string | null;
-  trainingGoal?: string; userBackground?: string; trainingId?: number | null;
-  reportReady?: boolean; coachFeedbackPending?: boolean;
 }
 
 export interface OrderListApiResult { records: OrderApiRecord[]; total: number; size: number; current: number; pages: number; }
@@ -61,14 +59,11 @@ export interface SceneApiRecord { id: number; name: string; description?: string
 export interface CoachOrderRecord {
   orderId: number; status: ApiOrderStatus; userId: number; userName: string;
   userAvatar?: string; sceneName: string; trainingGoal?: string;
-  userBackground?: string; trainingId?: number | null;
   scheduledStart: string; scheduledEnd: string; roomId: string | null;
   trainingStatus: ApiTrainingStatus; canEnterRoom: boolean;
-  reportReady?: boolean; coachFeedbackPending?: boolean;
 }
 
 export interface CoachDashboard {
   totalSessions: number; totalHours: number; goodReviewRate: number;
   levelName: string; levelProgress: number; monthIncome: number;
-  lastTrainingId?: number | null;
 }

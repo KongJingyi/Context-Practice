@@ -41,3 +41,13 @@ cd frontend && npm run dev:admin
 ## 仓库说明
 
 本仓库为 **monorepo**，汇总学员端、陪练端与后端，便于答辩展示与 GitHub 备份。团队日常开发亦可使用 Gerrit 分仓库协作。
+
+## 与 Gerrit 分仓库的关系
+
+| 本地/Gerrit 目录 | 本 monorepo 目录 |
+|------------------|------------------|
+| `ContextPractice-backend` | `backend/` |
+| `ContextPractice-frontend` | `frontend/` |
+| `ContextPractice-coach` | `coach/` |
+
+日常开发可继续在 Gerrit 三仓库提交；需要同步到 GitHub 时，在本目录更新对应子目录后 `git push origin main`。

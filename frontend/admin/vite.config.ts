@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      host: true,
       port: Number(env.VITE_ADMIN_PORT || 5176),
       proxy: {
         "/api": { target: apiTarget, changeOrigin: true },

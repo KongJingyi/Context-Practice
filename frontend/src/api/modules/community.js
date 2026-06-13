@@ -107,7 +107,7 @@ export async function fetchPosts(params = {}) {
     const data = await request({
       url: "/v1/posts",
       method: "GET",
-      params,
+      data: params,
     });
     if (Array.isArray(data) && data.length) return normalizePosts(data);
   } catch {
@@ -127,12 +127,18 @@ function normalizePosts(raw) {
     title: p.title,
     content: p.content,
     tags: p.tags || [],
-    stats: p.stats,
-    hasVideo: p.has_video,
-    videoPreview: p.video_preview,
-    publishedAt: p.published_at || "刚刚",
-    liked: false,
-    collected: false,
+    stats: {
+      likes: p.stats?.likes ?? 0,
+      comments: p.stats?.comments ?? 0,
+      collects: p.stats?.collects ?? 0,
+    },
+    hasVideo: p.has_video ?? p.hasVideo,
+    videoPreview: p.video_preview ?? p.videoPreview,
+    company: p.company,
+    role: p.role,
+    publishedAt: p.published_at ?? p.publishedAt ?? "刚刚",
+    liked: Boolean(p.liked),
+    collected: Boolean(p.collected),
   }));
 }
 
@@ -182,6 +188,23 @@ export async function likePost(postId, liked) {
     /* mock */
   }
   return { ok: true, liked };
+}
+
+/**
+ * @param {string} postId
+ * @param {boolean} collected
+ */
+export async function collectPost(postId, collected) {
+  try {
+    return await request({
+      url: `/v1/posts/${postId}/collect`,
+      method: "POST",
+      data: { collected },
+    });
+  } catch {
+    /* mock */
+  }
+  return { ok: true, collected };
 }
 
 /**

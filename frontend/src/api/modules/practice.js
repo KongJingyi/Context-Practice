@@ -119,13 +119,25 @@ const MOCK_ANALYSIS_POOL = [
   },
 ];
 
+function normalizeCategories(raw) {
+  return raw.map((c) => ({
+    id: c.id,
+    title: c.title,
+    subtitle: c.subtitle,
+    icon: c.icon,
+    gradient: Array.isArray(c.gradient) ? c.gradient : ["#1e3a8a", "#3b82f6"],
+    todayCount: Number(c.todayCount ?? c.today_count ?? 0) || 0,
+    span: c.span || "normal",
+  }));
+}
+
 /**
  * @returns {Promise<import('@/types/practice').QuestionCategory[]>}
  */
 export async function fetchQuestionCategories() {
   try {
     const data = await request({ url: "/v1/practice/questions/categories", method: "GET" });
-    if (Array.isArray(data) && data.length) return data;
+    if (Array.isArray(data) && data.length) return normalizeCategories(data);
   } catch {
     /* mock */
   }

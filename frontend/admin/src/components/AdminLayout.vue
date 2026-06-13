@@ -37,8 +37,6 @@ const nav = [
   { to: "/refunds", label: "退款审批" },
   { to: "/orders", label: "订单监控" },
   { to: "/scenes", label: "场景管理" },
-  { to: "/question-banks", label: "题库管理" },
-  { to: "/community", label: "社区内容" },
   { to: "/announcements", label: "公告管理" },
   { to: "/config", label: "系统配置" },
   { to: "/audit-logs", label: "审计日志" },

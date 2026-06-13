@@ -44,11 +44,15 @@ function mockJoinInfo(roomId: string, role: "USER" | "COACH"): RoomJoinInfo {
 
 // Get join info (TRTC credentials)
 export async function fetchJoinInfo(roomId: string): Promise<RoomJoinInfo> {
-  return (await request({
-    url: `/v1/rooms/${encodeURIComponent(roomId)}/join-info`,
-    method: "GET",
-    silent: true,
-  })) as RoomJoinInfo;
+  try {
+    return await request({
+      url: `/v1/rooms/${roomId}/join-info`,
+      method: "GET",
+      silent: true,
+    }) as RoomJoinInfo;
+  } catch {
+    return mockJoinInfo(roomId, "COACH");
+  }
 }
 
 // Record room join
@@ -175,19 +179,6 @@ export async function postPressureQuestion(roomId: string, body: { questionId?: 
 }
 
 // P1 - Room state (pressure mode, whiteboard, etc.)
-export interface WhiteboardStroke {
-  id: string;
-  color: string;
-  width: number;
-  points: { x: number; y: number }[];
-}
-
-export interface WhiteboardState {
-  active: boolean;
-  version: number;
-  strokes: WhiteboardStroke[];
-}
-
 export interface RoomStateResult {
   pressureMode: {
     enabled: boolean;
@@ -195,7 +186,7 @@ export interface RoomStateResult {
     lastInterrupt: { message: string; at: string } | null;
     currentQuestion: { questionId: number; text: string } | null;
   };
-  whiteboard: WhiteboardState;
+  whiteboard: { active: boolean; contentUrl: string | null };
   serverTime: string;
 }
 
@@ -209,39 +200,15 @@ export async function fetchRoomState(roomId: string): Promise<RoomStateResult> {
   } catch {
     return {
       pressureMode: {
-        enabled: false,
+        enabled: true,
         countdown: { active: false, secondsLeft: 0, totalSeconds: 60 },
         lastInterrupt: null,
         currentQuestion: null,
       },
-      whiteboard: { active: false, version: 0, strokes: [] },
+      whiteboard: { active: false, contentUrl: null },
       serverTime: new Date().toISOString(),
     };
   }
-}
-
-export async function postWhiteboardToggle(roomId: string, active: boolean) {
-  return request({
-    url: `/v1/rooms/${roomId}/whiteboard/toggle`,
-    method: "POST",
-    data: { active },
-  }) as Promise<WhiteboardState>;
-}
-
-export async function postWhiteboardStrokes(roomId: string, strokes: WhiteboardStroke[]) {
-  return request({
-    url: `/v1/rooms/${roomId}/whiteboard/strokes`,
-    method: "POST",
-    data: { strokes },
-  }) as Promise<WhiteboardState>;
-}
-
-export async function postWhiteboardClear(roomId: string) {
-  return request({
-    url: `/v1/rooms/${roomId}/whiteboard/clear`,
-    method: "POST",
-    data: {},
-  }) as Promise<WhiteboardState>;
 }
 
 // P1 - Chat

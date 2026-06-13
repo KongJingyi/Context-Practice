@@ -50,4 +50,22 @@ public class OrderSummaryResponse {
 
     /** 陪练是否待提交课后反馈 */
     private Boolean coachFeedbackPending;
+
+    /** 右上角角标文案（随时间变化：即将开始/可进入/训练中/已失效等） */
+    private String ribbonLabel;
+
+    /** 展示阶段：UPCOMING | ENTERABLE | IN_TRAINING | EXPIRED | ... */
+    private String displayPhase;
+
+    /** 是否可取消订单 */
+    private Boolean canCancel;
+
+    /** 是否可申请退款（未开始训练） */
+    private Boolean canRefund;
+
+    /** 是否已失效（预约结束未进房） */
+    private Boolean expired;
+
+    /** 训练时段已结束（超时自动归档） */
+    private Boolean sessionEnded;
 }

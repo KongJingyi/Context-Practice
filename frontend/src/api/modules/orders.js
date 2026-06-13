@@ -110,21 +110,56 @@ function applyMockMutations(list, tab) {
   });
 
   if (tab === "active") {
-    return mutated.filter((item) => item.status !== "cancelled" && item.status !== "completed");
+    return mutated.filter((item) => classifyOrderTab(item) === "active");
   }
-  return mutated;
+  return mutated.filter((item) => classifyOrderTab(item) === "history");
 }
 
 /**
- * @param {import('@/types/orders').OrderApiStatus} status
- * @returns {Promise<import('@/types/orders').MyOrderItem[]>}
+ * 解析预约结束时间（毫秒）
+ * @param {string | undefined} scheduledEnd
+ */
+function parseScheduledEndMs(scheduledEnd) {
+  if (!scheduledEnd) return null;
+  const ms = Date.parse(scheduledEnd);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * 判断订单应出现在哪个 tab
+ * - 进行中：仅「待支付 / 进行中」且预约结束时间未到
+ * - 历史：已过预约时间、已取消、已完成、待复盘、退款等其余全部
+ * @param {import('@/types/orders').MyOrderItem} item
+ * @returns {'active' | 'history'}
+ */
+export function classifyOrderTab(item) {
+  if (["cancelled", "refunded", "expired", "closed"].includes(item.status)) {
+    return "history";
+  }
+  if (item.sessionEnded || item.expired) {
+    return "history";
+  }
+  if (["completed", "pending_review", "refunding"].includes(item.status)) {
+    return "history";
+  }
+
+  const endMs = parseScheduledEndMs(item.scheduledEnd);
+  if (endMs != null && Date.now() > endMs) {
+    return "history";
+  }
+
+  if (item.status === "pending_pay" || item.status === "in_progress") {
+    return "active";
+  }
+  return "history";
+}
+
+/**
+ * @param {import('@/types/orders').MyOrderItem[]} list
+ * @param {'active' | 'history'} tab
  */
 function filterByTab(list, tab) {
-  const activeSet = new Set(["pending_pay", "in_progress", "pending_review", "refunding"]);
-  const historySet = new Set(["completed", "cancelled", "refunded", "closed"]);
-  const set = tab === "active" ? activeSet : historySet;
-  const hit = list.filter((item) => set.has(item.status));
-  return hit.length ? hit : list;
+  return list.filter((item) => classifyOrderTab(item) === tab);
 }
 
 export async function fetchOrders(status) {

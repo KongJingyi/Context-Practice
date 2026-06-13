@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,5 +56,14 @@ public class OrderController {
     @GetMapping("/{orderId}")
     public ApiResult<OrderSummaryResponse> detail(@PathVariable Long orderId) {
         return ApiResult.ok(orderService.getOrderDetail(orderId));
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public ApiResult<Map<String, Object>> cancel(
+            @PathVariable Long orderId,
+            @RequestBody(required = false) Map<String, Object> body) {
+        String reason = body != null ? String.valueOf(body.getOrDefault("reason", "")) : "";
+        orderService.cancelOrder(orderId, reason);
+        return ApiResult.ok(Map.of("ok", true));
     }
 }

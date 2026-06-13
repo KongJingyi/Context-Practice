@@ -30,7 +30,6 @@ import com.team13.context.mapper.TrainingReportMapper;
 import com.team13.context.service.TrainingRecordingService;
 import com.team13.context.service.frontend.CoachPortalService;
 import com.team13.context.service.support.CoachRoleSupport;
-import com.team13.context.service.support.OrderBookingSupport;
 import com.team13.context.service.support.RoomContextSupport;
 import com.team13.context.service.support.UserDisplayHelper;
 import lombok.RequiredArgsConstructor;
@@ -74,7 +73,6 @@ public class CoachPortalServiceImpl implements CoachPortalService {
     private final CoachUploadStorage coachUploadStorage;
     private final RoomContextSupport roomContextSupport;
     private final UserDisplayHelper userDisplayHelper;
-    private final OrderBookingSupport orderBookingSupport;
     private final JdbcTemplate jdbcTemplate;
     private final TrainingRecordingService trainingRecordingService;
 
@@ -156,10 +154,6 @@ public class CoachPortalServiceImpl implements CoachPortalService {
         }
         syncBookableSlots(coachId);
         return Map.of("ok", true);
-    }
-
-    private void syncBookableSlots(Long coachId) {
-        orderBookingSupport.syncFutureSlotsFromWeekly(coachId);
     }
 
     @Override
@@ -347,6 +341,40 @@ public class CoachPortalServiceImpl implements CoachPortalService {
             throw new ResourceNotFoundException("评价不存在");
         }
         return rating;
+    }
+
+    private void syncBookableSlots(Long coachId) {
+        scheduleSlotMapper.delete(
+                Wrappers.<CoachScheduleSlot>lambdaQuery()
+                        .eq(CoachScheduleSlot::getCoachId, coachId)
+                        .ge(CoachScheduleSlot::getStartTime, LocalDate.now().atStartOfDay()));
+        List<CoachWeeklySchedule> weekly = weeklyScheduleMapper.selectList(
+                Wrappers.<CoachWeeklySchedule>lambdaQuery()
+                        .eq(CoachWeeklySchedule::getCoachId, coachId)
+                        .eq(CoachWeeklySchedule::getEnabled, 1));
+        LocalDateTime now = LocalDateTime.now();
+        for (int dayOffset = 0; dayOffset < 14; dayOffset++) {
+            LocalDate day = LocalDate.now().plusDays(dayOffset);
+            int dow = day.getDayOfWeek().getValue() % 7;
+            for (CoachWeeklySchedule w : weekly) {
+                if (!Objects.equals(w.getDayOfWeek(), dow)) {
+                    continue;
+                }
+                LocalDateTime start = LocalDateTime.of(day, w.getStartTime());
+                LocalDateTime end = LocalDateTime.of(day, w.getEndTime());
+                if (!end.isAfter(start)) {
+                    continue;
+                }
+                CoachScheduleSlot slot = new CoachScheduleSlot();
+                slot.setCoachId(coachId);
+                slot.setStartTime(start);
+                slot.setEndTime(end);
+                slot.setStatus(1);
+                slot.setCreatedAt(now);
+                slot.setUpdatedAt(now);
+                scheduleSlotMapper.insert(slot);
+            }
+        }
     }
 
     private long countCoachOrders(Long coachId, String status) {

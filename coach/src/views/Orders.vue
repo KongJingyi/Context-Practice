@@ -69,17 +69,9 @@
               </div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
-              <span v-if="order.coachFeedbackPending" class="coach-badge bg-amber-50 text-amber-700">待提交反馈</span>
               <span :class="['coach-badge', statusClass(order.status)]">{{ statusLabel(order.status) }}</span>
               <button
-                v-if="order.coachFeedbackPending"
-                class="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-xl hover:bg-amber-600 transition-colors"
-                @click.stop="submitFeedback(order.orderId)"
-              >
-                提交反馈
-              </button>
-              <button
-                v-else-if="order.canEnterRoom && order.roomId"
+                v-if="order.canEnterRoom && order.roomId"
                 class="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-xl hover:bg-teal-700 transition-colors"
                 @click.stop="enterRoom(order.roomId!)"
               >
@@ -129,7 +121,7 @@ const stats = computed(() => {
     { key: "total", label: "全部订单", value: all.length },
     { key: "paid", label: "待训练", value: all.filter((o) => o.status === "PAID").length },
     { key: "active", label: "训练中", value: all.filter((o) => o.status === "IN_SERVICE").length },
-    { key: "feedback", label: "待反馈", value: all.filter((o) => o.coachFeedbackPending).length },
+    { key: "done", label: "已完成", value: all.filter((o) => o.status === "COMPLETED").length },
   ];
 });
 
@@ -164,7 +156,6 @@ function formatDate(iso: string) {
 
 function goDetail(orderId: number) { router.push(`/orders/${orderId}`); }
 function enterRoom(roomId: string) { router.push(`/room/${roomId}`); }
-function submitFeedback(orderId: number) { router.push(`/submit-feedback/${orderId}`); }
 
 onMounted(async () => {
   orders.value = await fetchCoachOrders();

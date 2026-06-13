@@ -95,10 +95,6 @@ public class AliyunPnvsSmsVerificationClient implements SmsVerificationClient {
 
     @Override
     public boolean verify(String phone, String scene, String verifyCode) {
-        if (StringUtils.hasText(authProperties.getSmsDevFixedCode())
-                && authProperties.getSmsDevFixedCode().equals(verifyCode.trim())) {
-            return true;
-        }
         assertConfigured();
         AuthVerificationStore.SmsPnvsMeta meta = verificationStore.getSmsPnvsMeta(phone, scene);
         String schemeName = meta != null && StringUtils.hasText(meta.schemeName())

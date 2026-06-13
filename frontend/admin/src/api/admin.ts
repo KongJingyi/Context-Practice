@@ -38,9 +38,6 @@ export const fetchAnnouncements = () =>
 export const createAnnouncement = (body: Record<string, unknown>) =>
   request("/v1/admin/announcements", { method: "POST", data: body });
 
-export const updateAnnouncement = (id: number, body: Record<string, unknown>) =>
-  request("/v1/admin/announcements/" + id, { method: "PUT", data: body });
-
 export const deleteAnnouncement = (id: number) =>
   request("/v1/admin/announcements/" + id, { method: "DELETE" });
 
@@ -59,30 +56,3 @@ export const updateSceneStatus = (id: number, status: number) =>
 
 export const fetchOrders = (status?: string, page = 1) =>
   request<Record<string, unknown>[]>("/v1/admin/orders", { method: "GET", params: { status, page } });
-
-export const fetchCommunityPosts = (status?: number, keyword?: string, page = 1) =>
-  request<Record<string, unknown>[]>("/v1/admin/community/posts", {
-    method: "GET",
-    params: { status, keyword, page },
-  });
-
-export const updateCommunityPostStatus = (id: number, status: number) =>
-  request("/v1/admin/community/posts/" + id + "/status", { method: "PUT", data: { status } });
-
-export const fetchQuestionBanks = (sceneId?: number) =>
-  request<Record<string, unknown>[]>("/v1/admin/question-banks", { method: "GET", params: { sceneId } });
-
-export const createQuestionBank = (body: Record<string, unknown>) =>
-  request("/v1/admin/question-banks", { method: "POST", data: body });
-
-export const updateQuestionBankStatus = (id: number, status: number) =>
-  request("/v1/admin/question-banks/" + id + "/status", { method: "PUT", data: { status } });
-
-export const fetchBankQuestions = (bankId: number) =>
-  request<Record<string, unknown>[]>("/v1/admin/question-banks/" + bankId + "/questions", { method: "GET" });
-
-export const createQuestion = (bankId: number, body: Record<string, unknown>) =>
-  request("/v1/admin/question-banks/" + bankId + "/questions", { method: "POST", data: body });
-
-export const updateQuestionStatus = (id: number, status: number) =>
-  request("/v1/admin/questions/" + id + "/status", { method: "PUT", data: { status } });

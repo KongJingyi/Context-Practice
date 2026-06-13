@@ -38,7 +38,7 @@ app:
     cos-region: ${TRTC_COS_REGION:ap-guangzhou}
     recording-callback-secret: ${TRTC_RECORDING_CALLBACK_SECRET:}
   room:
-    early-enter-minutes: 5
+    early-enter-minutes: 10
     grace-after-end-minutes: 15
   auth:
     # dev=本地模拟 | aliyun=短信认证服务(PNVS/dypnsapi)

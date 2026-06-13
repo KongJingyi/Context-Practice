@@ -8,11 +8,11 @@
       <el-table-column prop="submitPayload" label="提交内容" show-overflow-tooltip />
       <el-table-column label="操作" width="200">
         <template #default="{ row }">
-          <template v-if="Number(row.status) === 0">
+          <template v-if="row.status === 0">
             <el-button size="small" type="success" @click="review(row, 1)">通过</el-button>
             <el-button size="small" type="danger" @click="review(row, 2)">驳回</el-button>
           </template>
-          <el-tag v-else>{{ Number(row.status) === 1 ? "已通过" : "已驳回" }}</el-tag>
+          <el-tag v-else>{{ row.status === 1 ? "已通过" : "已驳回" }}</el-tag>
         </template>
       </el-table-column>
     </el-table>
@@ -44,13 +44,9 @@ async function review(row: Record<string, unknown>, s: number) {
     const { value } = await ElMessageBox.prompt("驳回原因", "认证驳回");
     note = value || "";
   }
-  try {
-    await reviewVerification(row.id as number, s, note);
-    ElMessage.success("已处理");
-    await load();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "处理失败，请重试");
-  }
+  await reviewVerification(row.id as number, s, note);
+  ElMessage.success("已处理");
+  await load();
 }
 
 onMounted(load);

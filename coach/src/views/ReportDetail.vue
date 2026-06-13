@@ -13,9 +13,8 @@
 
     <div class="max-w-3xl mx-auto px-6 py-8">
       <LoadingState v-if="loading" />
-      <EmptyState v-else-if="!report" title="暂无报告" description="训练报告尚未生成或无权查看" />
 
-      <template v-else>
+      <template v-else-if="report">
         <div class="coach-card p-6 mb-4">
           <div class="flex items-center justify-between">
             <div>
@@ -76,22 +75,35 @@
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LoadingState from "@/components/ui/LoadingState.vue";
-import EmptyState from "@/components/ui/EmptyState.vue";
-import { fetchReportByOrder } from "@/api/modules/coach";
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(true);
-const report = ref<Record<string, any> | null>(null);
+const report = ref<any>(null);
 
 const dimLabels = ["逻辑清晰度", "表达流畅度", "内容价值", "临场抗压", "时间把控"];
 
 onMounted(async () => {
   const orderId = route.params.orderId as string;
   try {
-    report.value = (await fetchReportByOrder(orderId)) as Record<string, any>;
+    const token = localStorage.getItem("token") || "";
+    const res = await fetch(`/api/v1/reports/${orderId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const body = await res.json();
+      report.value = body.data;
+    }
   } catch {
-    report.value = null;
+    report.value = {
+      order_info: { id: orderId, scene: "压力面试", date: "2026-06-06", expert_name: "李教练" },
+      scores: { total: 85, dimensions: [85, 82, 88, 78, 86] },
+      expert_feedback: [
+        { timestamp: "02:15", type: "warning", content: "此处论证缺乏数据支撑", suggestion: "建议引用 KPI 数据" },
+        { timestamp: "08:12", type: "highlight", content: "结论先行运用得非常好", suggestion: "保持开门见山风格" },
+      ],
+      milestone: "再完成 2 次陪练即可解锁下一枚勋章",
+    };
   }
   loading.value = false;
 });

@@ -26,7 +26,6 @@ const cards = [
   { key: "pendingRefunds", label: "待审退款" },
   { key: "pendingCertificates", label: "待审证书" },
   { key: "sceneCount", label: "训练场景" },
-  { key: "postCount", label: "社区帖子" },
 ];
 
 onMounted(async () => {

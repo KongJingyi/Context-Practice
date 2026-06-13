@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import IdUploadCard from "@/components/profile/IdUploadCard.vue";
 import { submitAuth, uploadFile } from "@/api/modules/verify.js";
 import { validateChineseIdCard } from "@/utils/validate/idCard";
@@ -159,23 +159,6 @@ onMounted(async () => {
   if (verifyStore.isPending || verifyStore.isVerified) {
     displayStep.value = 2;
   }
-  if (verifyStore.isPending) {
-    pollTimer = window.setInterval(async () => {
-      await verifyStore.loadStatus();
-      if (verifyStore.isVerified || verifyStore.status === "rejected") {
-        if (pollTimer) {
-          clearInterval(pollTimer);
-          pollTimer = undefined;
-        }
-      }
-    }, 10000);
-  }
-});
-
-let pollTimer: number | undefined;
-
-onUnmounted(() => {
-  if (pollTimer) clearInterval(pollTimer);
 });
 
 function onIdInput() {

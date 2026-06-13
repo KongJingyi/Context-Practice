@@ -29,7 +29,7 @@ public interface UserPortalService {
 
     Map<String, Object> getSecurityInfo();
 
-    Map<String, Object> sendChangePhoneCode(Map<String, Object> body);
+    Map<String, Object> updatePassword(Map<String, Object> body);
 
     Map<String, Object> updatePhone(Map<String, Object> body);
 

@@ -1,4 +1,5 @@
 /**
+ * POST /api/v1/user/security/update-password
  * PATCH /api/v1/user/settings/privacy
  * PATCH /api/v1/user/settings/notifications
  */
@@ -19,34 +20,48 @@ const DEFAULT_NOTIFY = {
 };
 
 export async function fetchSecurityInfo() {
-  const data = await request({ url: "/v1/user/security", method: "GET" });
-  return { phoneMasked: data?.phoneMasked ?? data?.phone_masked ?? "" };
+  try {
+    const data = await request({ url: "/v1/user/security", method: "GET" });
+    if (data?.phone_masked) return { phoneMasked: data.phone_masked };
+  } catch {
+    /* mock */
+  }
+  return { phoneMasked: "138****5678" };
 }
 
 /**
- * @param {{ phone: string }} payload
+ * @param {{ oldPassword: string; newPassword: string }} payload
  */
-export async function sendChangePhoneCode(payload) {
-  return request({
-    url: "/v1/user/security/send-phone-code",
-    method: "POST",
-    data: payload,
-  });
+export async function updatePassword(payload) {
+  try {
+    return await request({
+      url: "/v1/user/security/update-password",
+      method: "POST",
+      data: { old_password: payload.oldPassword, new_password: payload.newPassword },
+    });
+  } catch {
+    /* mock */
+  }
+  if (!payload.oldPassword || payload.newPassword.length < 8) {
+    throw new Error("密码格式不符合要求");
+  }
+  return { ok: true };
 }
 
 /**
  * @param {{ phone: string; code: string }} payload
  */
 export async function updatePhone(payload) {
-  const data = await request({
-    url: "/v1/user/security/update-phone",
-    method: "POST",
-    data: payload,
-  });
-  return {
-    ok: true,
-    phoneMasked: data?.phoneMasked ?? data?.phone_masked ?? "",
-  };
+  try {
+    return await request({
+      url: "/v1/user/security/update-phone",
+      method: "POST",
+      data: payload,
+    });
+  } catch {
+    /* mock */
+  }
+  return { ok: true, phoneMasked: `${payload.phone.slice(0, 3)}****${payload.phone.slice(-4)}` };
 }
 
 export async function fetchPrivacySettings() {
@@ -133,3 +148,14 @@ function normalizeNotify(raw) {
   };
 }
 
+/** @param {string} pwd */
+export function passwordStrength(pwd) {
+  if (!pwd) return { score: 0, label: "请输入密码" };
+  let score = 0;
+  if (pwd.length >= 8) score += 1;
+  if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score += 1;
+  if (/\d/.test(pwd)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
+  const labels = ["弱", "较弱", "中等", "强", "很强"];
+  return { score, label: labels[score] };
+}

@@ -6,12 +6,10 @@ import com.team13.context.constant.BusinessStatuses;
 import com.team13.context.dto.CreateOrderRequest;
 import com.team13.context.entity.CoachProfile;
 import com.team13.context.entity.CoachScheduleSlot;
-import com.team13.context.entity.CoachWeeklySchedule;
 import com.team13.context.entity.Order;
 import com.team13.context.entity.Product;
 import com.team13.context.mapper.CoachProfileMapper;
 import com.team13.context.mapper.CoachScheduleSlotMapper;
-import com.team13.context.mapper.CoachWeeklyScheduleMapper;
 import com.team13.context.mapper.OrderMapper;
 import com.team13.context.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -40,7 +37,6 @@ public class OrderBookingSupport {
 
     private final CoachProfileMapper coachProfileMapper;
     private final CoachScheduleSlotMapper coachScheduleSlotMapper;
-    private final CoachWeeklyScheduleMapper coachWeeklyScheduleMapper;
     private final OrderMapper orderMapper;
     private final ProductMapper productMapper;
 
@@ -89,58 +85,21 @@ public class OrderBookingSupport {
         return per30.setScale(2, RoundingMode.HALF_UP);
     }
 
-    /**
-     * 将陪练端「周排班」同步为未来 14 天可预约时段（按小时切分，供学员端展示）。
-     */
-    public void syncFutureSlotsFromWeekly(Long coachId) {
-        coachScheduleSlotMapper.delete(
-                Wrappers.<CoachScheduleSlot>lambdaQuery()
-                        .eq(CoachScheduleSlot::getCoachId, coachId)
-                        .ge(CoachScheduleSlot::getStartTime, LocalDate.now().atStartOfDay()));
-        List<CoachWeeklySchedule> weekly = coachWeeklyScheduleMapper.selectList(
-                Wrappers.<CoachWeeklySchedule>lambdaQuery()
-                        .eq(CoachWeeklySchedule::getCoachId, coachId)
-                        .eq(CoachWeeklySchedule::getEnabled, 1));
-        LocalDateTime now = LocalDateTime.now();
-        for (int dayOffset = 0; dayOffset < 14; dayOffset++) {
-            LocalDate day = LocalDate.now().plusDays(dayOffset);
-            int dow = day.getDayOfWeek().getValue() % 7;
-            for (CoachWeeklySchedule w : weekly) {
-                if (!Objects.equals(w.getDayOfWeek(), dow)) {
-                    continue;
-                }
-                LocalDateTime rangeStart = LocalDateTime.of(day, w.getStartTime());
-                LocalDateTime rangeEnd = LocalDateTime.of(day, w.getEndTime());
-                if (!rangeEnd.isAfter(rangeStart)) {
-                    continue;
-                }
-                LocalDateTime cursor = rangeStart;
-                while (cursor.isBefore(rangeEnd)) {
-                    LocalDateTime slotEnd = cursor.plusHours(1);
-                    if (slotEnd.isAfter(rangeEnd)) {
-                        slotEnd = rangeEnd;
-                    }
-                    CoachScheduleSlot slot = new CoachScheduleSlot();
-                    slot.setCoachId(coachId);
-                    slot.setStartTime(cursor);
-                    slot.setEndTime(slotEnd);
-                    slot.setStatus(1);
-                    slot.setCreatedAt(now);
-                    slot.setUpdatedAt(now);
-                    coachScheduleSlotMapper.insert(slot);
-                    cursor = slotEnd;
-                }
-            }
-        }
-    }
-
     public List<Map<String, Object>> buildSlotOptions(Long coachId, LocalDate day) {
         List<CoachScheduleSlot> dbSlots = listOpenSlots(coachId, day);
         if (!dbSlots.isEmpty()) {
-            List<Map<String, Object>> items = expandDbSlotsToOptions(coachId, dbSlots);
-            if (!items.isEmpty()) {
-                return items;
+            List<Map<String, Object>> items = new ArrayList<>();
+            for (CoachScheduleSlot slot : dbSlots) {
+                if (slot.getStartTime().isBefore(LocalDateTime.now().minusMinutes(5))) {
+                    continue;
+                }
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("id", formatSlotId(slot.getStartTime()));
+                item.put("label", formatSlotLabel(slot.getStartTime(), slot.getEndTime()));
+                item.put("booked", isSlotBooked(coachId, slot.getStartTime(), slot.getEndTime()));
+                items.add(item);
             }
+            return items;
         }
         List<Map<String, Object>> items = new ArrayList<>();
         List<Integer> hours = mockSlotHours();
@@ -164,41 +123,6 @@ public class OrderBookingSupport {
             Long coachId, Long productId, BigDecimal clientAmount, String couponId) {
         BigDecimal original = resolveOriginalAmount(coachId, productId);
         return CouponCatalog.applyDiscount(original, couponId);
-    }
-
-    private List<Map<String, Object>> expandDbSlotsToOptions(Long coachId, List<CoachScheduleSlot> dbSlots) {
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(5);
-        List<Map<String, Object>> items = new ArrayList<>();
-        for (CoachScheduleSlot slot : dbSlots) {
-            LocalDateTime cursor = slot.getStartTime();
-            LocalDateTime rangeEnd = slot.getEndTime();
-            while (cursor.isBefore(rangeEnd)) {
-                LocalDateTime segEnd = cursor.plusHours(1);
-                if (segEnd.isAfter(rangeEnd)) {
-                    segEnd = rangeEnd;
-                }
-                if (!segEnd.isBefore(cutoff) && segEnd.isAfter(cursor)) {
-                    LocalDateTime bookStart = cursor.isBefore(cutoff) ? alignNextSegmentStart(cutoff) : cursor;
-                    if (bookStart.isBefore(segEnd)) {
-                        Map<String, Object> item = new LinkedHashMap<>();
-                        item.put("id", formatSlotId(bookStart));
-                        item.put("label", formatSlotLabel(bookStart, segEnd));
-                        item.put("booked", isSlotBooked(coachId, bookStart, segEnd));
-                        items.add(item);
-                    }
-                }
-                cursor = segEnd;
-            }
-        }
-        return items;
-    }
-
-    private static LocalDateTime alignNextSegmentStart(LocalDateTime cutoff) {
-        LocalDateTime hourStart = cutoff.withMinute(0).withSecond(0).withNano(0);
-        if (hourStart.isBefore(cutoff)) {
-            hourStart = hourStart.plusHours(1);
-        }
-        return hourStart;
     }
 
     public List<CoachScheduleSlot> listOpenSlots(Long coachId, LocalDate day) {

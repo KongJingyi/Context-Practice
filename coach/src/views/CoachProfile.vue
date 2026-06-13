@@ -138,8 +138,6 @@ import {
   fetchEditableProfile,
   updateCoachProfile,
   fetchCoachReviews,
-  replyCoachRating,
-  appealCoachRating,
   type CoachProfile,
   type CoachReview,
 } from "@/api/modules/profile";
@@ -197,47 +195,28 @@ async function handleSave() {
 }
 
 function replyReview(r: CoachReview) {
-  if (!r.id) return;
   ElMessageBox.prompt("输入回复内容", `回复 ${r.userName || r.user}`, {
     confirmButtonText: "发送",
     cancelButtonText: "取消",
-  })
-    .then(async ({ value }) => {
-      if (!value?.trim()) return;
-      await replyCoachRating(r.id!, value.trim());
-      ElMessage.success("回复已发送");
-    })
-    .catch(() => {});
+  }).then(() => ElMessage.success("回复已发送"));
 }
 
 function appealReview(r: CoachReview) {
-  if (!r.id) return;
   ElMessageBox.prompt("请说明申诉理由", "恶意评价申诉", {
     confirmButtonText: "提交申诉",
     cancelButtonText: "取消",
-  })
-    .then(async ({ value }) => {
-      if (!value?.trim()) return;
-      await appealCoachRating(r.id!, value.trim());
-      ElMessage.success("申诉已提交，平台将尽快处理");
-    })
-    .catch(() => {});
+  }).then(() => ElMessage.success("申诉已提交，平台将尽快处理"));
 }
 
 onMounted(async () => {
-  try {
-    const [p, r] = await Promise.all([fetchCoachProfile(), fetchCoachReviews()]);
-    profile.value = p;
-    reviews.value = r;
-  } catch {
-    profile.value = await fetchCoachProfile().catch(() => null);
-    reviews.value = [];
-  }
+  const [p, r] = await Promise.all([fetchCoachProfile(), fetchCoachReviews()]);
+  profile.value = p;
+  reviews.value = r;
   const editable = await fetchEditableProfile().catch(() => null);
-  editForm.value.nickname = editable?.nickname || profile.value?.nickname || profile.value?.name || "";
+  editForm.value.nickname = editable?.nickname || p?.nickname || p?.name || "";
   editForm.value.bio = (editable as { bio?: string })?.bio || "";
   editForm.value.scenes = (editable as { scenes?: string[] })?.scenes || [];
-  editForm.value.tags = profile.value?.tags || [];
+  editForm.value.tags = p?.tags || [];
   loading.value = false;
 });
 </script>

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="mo">
     <view class="mo-nav" :style="{ paddingTop: statusBarPx + 'px' }">
       <view class="mo-nav-inner">
@@ -28,11 +28,11 @@
           @tap="toggleExpand(item.id)"
         >
           <view
-            v-if="statusMeta(item.status).ribbon"
+            v-if="ribbonText(item)"
             class="mo-ribbon"
             :style="ribbonStyle(item.status)"
           >
-            <text class="mo-ribbon-txt">{{ statusMeta(item.status).ribbon }}</text>
+            <text class="mo-ribbon-txt">{{ ribbonText(item) }}</text>
           </view>
 
           <view v-if="item.status === 'pending_pay'" class="mo-countdown">
@@ -48,7 +48,7 @@
                 <view class="mo-info">
                   <view class="mo-meta-row">
                   <text class="mo-status-tag" :style="statusTagStyle(item.status)">
-                    {{ statusMeta(item.status).label }}
+                    {{ item.sessionEnded ? "已结束" : statusMeta(item.status).label }}
                   </text>
                     <text class="mo-cat-tag">{{ item.sceneTag }}</text>
                 </view>
@@ -95,8 +95,15 @@
                 <view v-if="item.canRefund" class="mo-btn mo-btn-outline" @tap="openRefundApply(item)">
                   <text class="mo-btn-txt-outline">申请退款</text>
               </view>
-                <text class="mo-link" @tap="openCancel(item)">取消订单</text>
+                <text v-if="item.canCancel" class="mo-link" @tap="openCancel(item)">取消订单</text>
+                <text v-else-if="item.enterDeniedReason" class="mo-hint">{{ item.enterDeniedReason }}</text>
           </template>
+              <template v-else-if="item.status === 'expired'">
+                <view class="mo-btn mo-btn-gray" @tap="onBookAgain(item)">
+                  <text class="mo-btn-txt-gray">再次预约</text>
+                </view>
+                <text v-if="item.enterDeniedReason" class="mo-hint">{{ item.enterDeniedReason }}</text>
+              </template>
               <template v-else-if="item.status === 'pending_review'">
                 <view class="mo-btn mo-btn-primary" @tap="onReview(item)">
                   <text class="mo-btn-txt">去复盘评价</text>
@@ -108,7 +115,10 @@
                 </view>
               </template>
               <template v-else-if="item.status === 'completed'">
-                <view v-if="item.reportReady !== false" class="mo-btn mo-btn-outline" @tap="onViewReport(item)">
+                <view v-if="item.canReview" class="mo-btn mo-btn-primary" @tap="onReview(item)">
+                  <text class="mo-btn-txt">去复盘评价</text>
+                </view>
+                <view v-else-if="item.reportReady !== false" class="mo-btn mo-btn-outline" @tap="onViewReport(item)">
                   <text class="mo-btn-txt-outline">查看反馈报告</text>
                 </view>
                 <view class="mo-btn mo-btn-gray" @tap="onBookAgain(item)">
@@ -210,6 +220,7 @@ const flashOrderId = ref("");
 
 const countdownMap = ref<Record<string, string>>({});
 let tickTimer: ReturnType<typeof setInterval> | null = null;
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 try {
   const sys = uni.getSystemInfoSync();
@@ -222,6 +233,10 @@ function statusMeta(status: OrderStatus) {
   return ORDER_STATUS_MAP[status];
 }
 
+function ribbonText(item: MyOrderItem) {
+  return item.ribbonLabel || statusMeta(item.status).ribbon || "";
+}
+
 function statusTagStyle(status: OrderStatus) {
   const m = statusMeta(status);
   return { color: m.color, background: m.bg, border: `1rpx solid ${m.border}` };
@@ -231,6 +246,9 @@ function cardBorderStyle(status: OrderStatus) {
   const m = statusMeta(status);
   if (status === "in_progress" || status === "pending_pay") {
     return { border: `3rpx solid ${m.border}`, boxShadow: `0 4rpx 20rpx ${m.bg}` };
+  }
+  if (status === "expired") {
+    return { border: `1rpx solid ${m.border}`, opacity: "0.92" };
   }
   return { border: `1rpx solid ${m.border}` };
 }
@@ -273,14 +291,23 @@ function startTicker() {
   tickTimer = setInterval(updateCountdowns, 1000);
 }
 
+function startAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    if (tab.value === "active") load();
+  }, 30000);
+}
+
 onUnmounted(() => {
   if (tickTimer) clearInterval(tickTimer);
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 async function load() {
   try {
     orders.value = await fetchOrders(tab.value);
     startTicker();
+    startAutoRefresh();
   } catch {
     orders.value = [];
   }
@@ -782,6 +809,14 @@ function onBookAgain(_item: MyOrderItem) {
   font-size: 22rpx;
   color: #2563eb;
   font-weight: 600;
+}
+.mo-hint {
+  display: block;
+  text-align: center;
+  font-size: 22rpx;
+  color: #94a3b8;
+  line-height: 1.5;
+  padding: 0 8rpx;
 }
 
 .mo-refund-bar {

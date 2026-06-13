@@ -12,6 +12,7 @@ export function mapApiOrderStatus(apiStatus) {
     CANCELLED: "cancelled",
     REFUNDING: "refunding",
     REFUNDED: "refunded",
+    EXPIRED: "expired",
   };
   return /** @type {import('@/types/orders').OrderStatus} */ (m[apiStatus] || "in_progress");
 }
@@ -28,7 +29,11 @@ export function mapOrderRecordToItem(raw) {
   const status = mapApiOrderStatus(raw.status);
 
   let uiStatus = status;
-  if (raw.canReview) {
+  if (raw.expired || raw.status === "EXPIRED") {
+    uiStatus = "expired";
+  } else if (raw.sessionEnded || raw.displayPhase === "SESSION_ENDED") {
+    uiStatus = "completed";
+  } else if (raw.canReview) {
     uiStatus = "pending_review";
   }
 
@@ -54,10 +59,15 @@ export function mapOrderRecordToItem(raw) {
     trainingStatus: raw.trainingStatus ?? undefined,
     scheduledStart: start,
     scheduledEnd: end,
-    canRefund: raw.status === "PAID",
+    canRefund: Boolean(raw.canRefund),
     hasRated: Boolean(raw.hasRated),
     canReview: Boolean(raw.canReview),
     reportReady: Boolean(raw.reportReady),
+    ribbonLabel: raw.ribbonLabel ?? undefined,
+    displayPhase: raw.displayPhase ?? undefined,
+    canCancel: Boolean(raw.canCancel),
+    expired: Boolean(raw.expired),
+    sessionEnded: Boolean(raw.sessionEnded),
   };
 }
 

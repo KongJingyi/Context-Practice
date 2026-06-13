@@ -13,8 +13,6 @@ const routes = [
   { path: "/announcements", component: () => import("@admin/views/Announcements.vue"), meta: { title: "公告管理" } },
   { path: "/config", component: () => import("@admin/views/Config.vue"), meta: { title: "系统配置" } },
   { path: "/scenes", component: () => import("@admin/views/Scenes.vue"), meta: { title: "场景管理" } },
-  { path: "/question-banks", component: () => import("@admin/views/QuestionBanks.vue"), meta: { title: "题库管理" } },
-  { path: "/community", component: () => import("@admin/views/Community.vue"), meta: { title: "社区内容" } },
   { path: "/orders", component: () => import("@admin/views/Orders.vue"), meta: { title: "订单监控" } },
   { path: "/audit-logs", component: () => import("@admin/views/AuditLogs.vue"), meta: { title: "审计日志" } },
 ];

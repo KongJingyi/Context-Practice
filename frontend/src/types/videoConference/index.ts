@@ -164,6 +164,12 @@ export interface OrderApiRecord {
   hasRated?: boolean;
   canReview?: boolean;
   reportReady?: boolean;
+  ribbonLabel?: string;
+  displayPhase?: string;
+  canCancel?: boolean;
+  canRefund?: boolean;
+  expired?: boolean;
+  sessionEnded?: boolean;
 }
 
 export interface OrderListApiResult {

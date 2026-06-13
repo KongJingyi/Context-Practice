@@ -50,5 +50,3 @@
 3. `application-dev.yml` 中通过 `api-key: ${DEEPSEEK_API_KEY:}` 引用；`app.ai.enabled: true` 时生效。  
 4. **切勿将 `.env` 提交到 Git**（已在 `.gitignore` 中忽略）。  
 5. 切换 Kimi：`base-url: https://api.moonshot.cn/v1`，`model: moonshot-v1-8k`，`.env` 中使用 `MOONSHOT_API_KEY` 并改 yml 中的变量名。
-
-11
