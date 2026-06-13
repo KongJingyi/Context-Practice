@@ -1,0 +1,22 @@
+app:
+  jwt:
+    enabled: false
+    secret: test_jwt_secret_key_for_unit_tests_32b
+    expiration-ms: 86400000
+  ai:
+    enabled: false
+  trtc:
+    sdk-app-id: 0
+    secret-key: ""
+  room:
+    early-enter-minutes: 5
+    grace-after-end-minutes: 15
+  auth:
+    sms-dev-expose: true
+    sms-dev-fixed-code: "888888"
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration

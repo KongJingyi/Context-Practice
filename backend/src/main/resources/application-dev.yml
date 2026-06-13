@@ -1,0 +1,73 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  flyway:
+    repair-on-migrate: true
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/context_practice?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:123456}
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+app:
+  room:
+    # 预约开始前 10 分钟可进房；训练开始后至 scheduledEnd + grace 仍可进房
+    early-enter-minutes: 10
+    grace-after-end-minutes: 15
+  auth:
+    # 本地联调可在 .env 设 SMS_PROVIDER=dev、SMS_DEV_FIXED_CODE=888888（.env 已 gitignore，不会提交/被 pull 覆盖）
+    sms-provider: ${SMS_PROVIDER:dev}
+    sms-dev-expose: true
+    sms-dev-fixed-code: ${SMS_DEV_FIXED_CODE:888888}
+    sms-min-interval-seconds: 60
+    sms-code-length: 6
+    verify-dev-auto-approve: ${VERIFY_DEV_AUTO_APPROVE:false}
+    verify-upload:
+      storage-dir: ./data/verify-uploads
+      max-size-bytes: 5242880
+      url-prefix: /api/files/verify/
+    aliyun:
+      access-key-id: ${ALIYUN_ACCESS_KEY_ID:}
+      access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET:}
+      sign-name: ${ALIYUN_SMS_SIGN_NAME:}
+      template-code: ${ALIYUN_SMS_TEMPLATE_CODE:}
+  ai:
+    enabled: true
+    base-url: https://api.deepseek.com
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: deepseek-chat
+  trtc:
+    sdk-app-id: ${TRTC_SDK_APP_ID:1600146515}
+    secret-key: ${TRTC_SECRET_KEY:}
+    expire-seconds: 86400
+    cloud-secret-id: ${TENCENT_SECRET_ID:}
+    cloud-secret-key: ${TENCENT_SECRET_KEY:}
+    cloud-region: ${TRTC_CLOUD_REGION:ap-guangzhou}
+    recording-storage-type: ${TRTC_RECORDING_STORAGE:vod}
+    vod-sub-app-id: ${TRTC_VOD_SUB_APP_ID:0}
+    cos-bucket: ${TRTC_COS_BUCKET:}
+    cos-region: ${TRTC_COS_REGION:ap-guangzhou}
+    cos-path-prefix: ${TRTC_COS_PATH_PREFIX:context-practice/recordings}
+    record-mode: 2
+    max-idle-time-sec: 120
+    recording-resource-expired-hours: 72
+    dev-recording-url: ${TRTC_DEV_RECORDING_URL:https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4}
+    recording-retention-days: 7
+    recording-callback-secret: ${TRTC_RECORDING_CALLBACK_SECRET:}
+
+logging:
+  level:
+    com.team13.context: DEBUG

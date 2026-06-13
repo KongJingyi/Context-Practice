@@ -1,0 +1,24 @@
+# 环境变量与密钥（勿提交真实 .env）
+.env
+.env.local
+.env.*.local
+!.env.example
+!**/.env.example
+
+# 构建产物与依赖
+**/node_modules/
+**/target/
+**/dist/
+**/dist-admin/
+
+# IDE
+.idea/
+*.iml
+
+# 本地上传
+**/data/verify-uploads/
+**/data/
+
+# OS
+.DS_Store
+Thumbs.db

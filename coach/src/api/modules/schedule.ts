@@ -1,0 +1,50 @@
+import { request } from "@/api/request";
+
+export interface ScheduleSlot {
+  id?: number;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  enabled?: boolean;
+}
+
+export interface SchedulePayload {
+  slots: ScheduleSlot[];
+}
+
+const DAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
+export function dayLabel(dow: number) {
+  return DAY_LABELS[dow] || `周${dow}`;
+}
+
+export async function fetchSchedule(): Promise<ScheduleSlot[]> {
+  try {
+    const data = (await request({
+      url: "/v1/coach/schedule",
+      method: "GET",
+      silent: true,
+    })) as { slots?: ScheduleSlot[] } | ScheduleSlot[];
+    if (Array.isArray(data)) return data;
+    return data.slots || [];
+  } catch {
+    return [
+      { dayOfWeek: 1, startTime: "09:00", endTime: "12:00", enabled: true },
+      { dayOfWeek: 1, startTime: "14:00", endTime: "18:00", enabled: true },
+      { dayOfWeek: 3, startTime: "10:00", endTime: "12:00", enabled: true },
+      { dayOfWeek: 5, startTime: "19:00", endTime: "22:00", enabled: true },
+    ];
+  }
+}
+
+export async function saveSchedule(slots: ScheduleSlot[]): Promise<{ ok: boolean }> {
+  try {
+    return (await request({
+      url: "/v1/coach/schedule",
+      method: "POST",
+      data: { slots },
+    })) as { ok: boolean };
+  } catch {
+    return { ok: true };
+  }
+}

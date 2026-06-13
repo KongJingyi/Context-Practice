@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: context-practice
+  profiles:
+    active: dev
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    enabled: true
+    secret: team13_context_practice_secure_key_2026
+    expiration-ms: 86400000
+  ai:
+    enabled: false
+    base-url: https://api.deepseek.com
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: deepseek-chat
+  trtc:
+    sdk-app-id: ${TRTC_SDK_APP_ID:0}
+    secret-key: ${TRTC_SECRET_KEY:}
+    expire-seconds: 86400
+    cloud-secret-id: ${TENCENT_SECRET_ID:}
+    cloud-secret-key: ${TENCENT_SECRET_KEY:}
+    cloud-region: ${TRTC_CLOUD_REGION:ap-guangzhou}
+    recording-storage-type: ${TRTC_RECORDING_STORAGE:vod}
+    vod-sub-app-id: ${TRTC_VOD_SUB_APP_ID:0}
+    cos-bucket: ${TRTC_COS_BUCKET:}
+    cos-region: ${TRTC_COS_REGION:ap-guangzhou}
+    recording-callback-secret: ${TRTC_RECORDING_CALLBACK_SECRET:}
+  room:
+    early-enter-minutes: 10
+    grace-after-end-minutes: 15
+  auth:
+    # dev=本地模拟 | aliyun=短信认证服务(PNVS/dypnsapi)
+    sms-provider: dev
+    sms-dev-expose: true
+    sms-dev-fixed-code:
+    sms-min-interval-seconds: 60
+    sms-code-length: 6
+    sms-expire-seconds: 300
+    aliyun:
+      access-key-id: ${ALIYUN_ACCESS_KEY_ID:}
+      access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET:}
+      sign-name: ${ALIYUN_SMS_SIGN_NAME:}
+      template-code: ${ALIYUN_SMS_TEMPLATE_CODE:}
+      template-code-login: ${ALIYUN_SMS_TEMPLATE_LOGIN:}
+      template-code-register: ${ALIYUN_SMS_TEMPLATE_REGISTER:}
+      scheme-name: ${ALIYUN_SMS_SCHEME_NAME:}
+      scheme-name-login: ${ALIYUN_SMS_SCHEME_LOGIN:}
+      scheme-name-register: ${ALIYUN_SMS_SCHEME_REGISTER:}
+    captcha-expire-seconds: 300
+    max-login-attempts: 5
+    lock-minutes: 15
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto

@@ -1,0 +1,12 @@
+target/
+*.class
+.idea/
+*.iml
+
+# 本地环境变量（含 API Key、数据库密码等）
+.env
+.env.local
+.env.*.local
+
+# 本地上传的证件图（勿提交）
+data/verify-uploads/
