@@ -47,14 +47,6 @@
             </view>
             <text class="as-row-action">修改</text>
           </view>
-
-          <view class="as-row" @tap="pwdModal = true">
-            <view class="as-row-text">
-              <text class="as-row-title">登录密码</text>
-              <text class="as-row-desc">定期更换密码，提升账号安全</text>
-            </view>
-            <text class="as-row-action">修改</text>
-          </view>
         </view>
 
         <!-- 隐私 -->
@@ -187,53 +179,20 @@
       </view>
     </view>
 
-    <!-- 修改密码 -->
-    <view v-if="pwdModal" class="as-mask" @tap="pwdModal = false">
-      <view class="as-modal" @tap.stop>
-        <text class="as-modal-title">修改密码</text>
-        <view class="as-field">
-          <text class="as-field-label">当前密码</text>
-          <input v-model="pwdForm.oldPassword" class="as-input" password placeholder="请输入当前密码" />
-        </view>
-        <view class="as-field">
-          <text class="as-field-label">新密码</text>
-          <input v-model="pwdForm.newPassword" class="as-input" password placeholder="至少 8 位，含大小写与数字" />
-          <view class="as-strength">
-            <view class="as-strength-bar">
-              <view
-                class="as-strength-fill"
-                :style="{ width: `${(pwdStrength.score / 4) * 100}%` }"
-                :class="`as-strength-fill--${pwdStrength.score}`"
-              />
-            </view>
-            <text class="as-strength-label">{{ pwdStrength.label }}</text>
-          </view>
-        </view>
-        <view class="as-field">
-          <text class="as-field-label">确认新密码</text>
-          <input v-model="pwdForm.confirm" class="as-input" password placeholder="再次输入新密码" />
-        </view>
-        <view class="as-modal-actions">
-          <view class="as-btn as-btn--ghost" @tap="pwdModal = false"><text>取消</text></view>
-          <view class="as-btn" @tap="submitPassword"><text>确认修改</text></view>
-        </view>
-      </view>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import ProfileEditor from "@/components/profile/ProfileEditor.vue";
 import {
   fetchSecurityInfo,
-  updatePassword,
+  sendChangePhoneCode,
   updatePhone,
   fetchPrivacySettings,
   patchPrivacySettings,
   fetchNotificationSettings,
   patchNotificationSettings,
-  passwordStrength,
 } from "@/api/modules/userSettings.js";
 import { showTopToast } from "@/utils/common/topToast";
 import type {
@@ -266,11 +225,8 @@ const savedKey = ref("");
 let savedTimer: ReturnType<typeof setTimeout> | null = null;
 
 const phoneModal = ref(false);
-const pwdModal = ref(false);
 const phoneForm = ref({ phone: "", code: "" });
-const pwdForm = ref({ oldPassword: "", newPassword: "", confirm: "" });
-
-const pwdStrength = computed(() => passwordStrength(pwdForm.value.newPassword));
+const sendingCode = ref(false);
 
 onMounted(async () => {
   const [sec, priv, ntf] = await Promise.all([
@@ -313,12 +269,21 @@ async function toggleNotify(key: keyof NotificationSettings) {
   }
 }
 
-function sendCode() {
+async function sendCode() {
   if (!/^1\d{10}$/.test(phoneForm.value.phone)) {
     showTopToast("请输入正确的手机号", "error");
     return;
   }
-  showTopToast("验证码已发送", "success");
+  if (sendingCode.value) return;
+  sendingCode.value = true;
+  try {
+    await sendChangePhoneCode({ phone: phoneForm.value.phone });
+    showTopToast("验证码已发送", "success");
+  } catch {
+    showTopToast("验证码发送失败，请稍后重试", "error");
+  } finally {
+    sendingCode.value = false;
+  }
 }
 
 async function submitPhone() {
@@ -339,25 +304,6 @@ async function submitPhone() {
   }
 }
 
-async function submitPassword() {
-  const { oldPassword, newPassword, confirm } = pwdForm.value;
-  if (!oldPassword || newPassword.length < 8) {
-    showTopToast("请填写符合要求的密码", "error");
-    return;
-  }
-  if (newPassword !== confirm) {
-    showTopToast("两次输入的密码不一致", "error");
-    return;
-  }
-  try {
-    await updatePassword({ oldPassword, newPassword });
-    pwdModal.value = false;
-    pwdForm.value = { oldPassword: "", newPassword: "", confirm: "" };
-    showTopToast("密码已更新", "success");
-  } catch {
-    showTopToast("修改失败，请检查当前密码", "error");
-  }
-}
 </script>
 
 <style scoped>
@@ -636,37 +582,6 @@ async function submitPassword() {
   font-weight: 700;
   color: #2563eb;
   white-space: nowrap;
-}
-
-.as-strength {
-  margin-top: 12rpx;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12rpx;
-}
-.as-strength-bar {
-  flex: 1;
-  height: 8rpx;
-  border-radius: 999rpx;
-  background: #f1f5f9;
-  overflow: hidden;
-}
-.as-strength-fill {
-  height: 100%;
-  border-radius: 999rpx;
-  transition: width 0.3s ease, background 0.3s ease;
-}
-.as-strength-fill--0 { background: #e2e8f0; }
-.as-strength-fill--1 { background: #ef4444; }
-.as-strength-fill--2 { background: #f59e0b; }
-.as-strength-fill--3 { background: #3b82f6; }
-.as-strength-fill--4 { background: #10b981; }
-.as-strength-label {
-  font-size: 22rpx;
-  color: #64748b;
-  font-weight: 600;
-  min-width: 60rpx;
 }
 
 .as-modal-actions {
